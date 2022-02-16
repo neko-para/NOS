@@ -1,6 +1,7 @@
+#include "io.h"
+#include "new.h"
 #include "string.h"
 #include "term.h"
-#include "new.h"
 
 static uint8_t term_data[sizeof (Term)];
 Term *term;
@@ -8,6 +9,8 @@ Term *term;
 void Term::init() {
     term = new (term_data)Term(reinterpret_cast<uint16_t *>(0xB8000), 80, 25);
     term->clear(DEFAULT_ENTRY);
+    term->enable_cursor(0, 15);
+    term->update_cursor(0, 0);
 }
 
 Term::Term(uint16_t *buf, uint16_t w, uint16_t h) : buffer(buf), width(w), height(h) {
@@ -39,7 +42,7 @@ _next_row:
         }
     }
 _end:
-    ;
+    term->update_cursor(row, column);
 }
 
 void Term::puts(const char *str) {
@@ -59,4 +62,27 @@ void Term::scroll(uint8_t nrow, uint16_t fill) {
         }
         row -= nrow;
     }
+    update_cursor(row, column);
+}
+
+void Term::enable_cursor(uint8_t cursor_start, uint8_t cursor_end) {
+	outb(0x3D4, 0x0A);
+	outb(0x3D5, (inb(0x3D5) & 0xC0) | cursor_start);
+ 
+	outb(0x3D4, 0x0B);
+	outb(0x3D5, (inb(0x3D5) & 0xE0) | cursor_end);
+}
+
+void Term::disable_cursor() {
+	outb(0x3D4, 0x0A);
+	outb(0x3D5, 0x20);
+}
+
+void Term::update_cursor(uint8_t r, uint8_t c) {
+    uint16_t pos = r * width + c;
+ 
+	outb(0x3D4, 0x0F);
+	outb(0x3D5, (uint8_t) (pos & 0xFF));
+	outb(0x3D4, 0x0E);
+	outb(0x3D5, (uint8_t) ((pos >> 8) & 0xFF));
 }

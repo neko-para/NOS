@@ -46,6 +46,10 @@ public:
 
     void scroll(uint8_t nrow, uint16_t fill = DEFAULT_ENTRY);
 
+    void enable_cursor(uint8_t cursor_start, uint8_t cursor_end);
+    void disable_cursor();
+    void update_cursor(uint8_t r, uint8_t c);
+
 private:
     uint16_t *buffer;
     uint8_t row = 0, column = 0;
