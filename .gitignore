@@ -1,0 +1,7 @@
+.xmake
+build
+
+disk/boot/kernel.bin
+disk.img
+
+install
