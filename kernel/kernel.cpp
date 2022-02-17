@@ -5,6 +5,7 @@
 #include "io/keyboard.h"
 #include "io/mouse.h"
 #include "io/term.h"
+#include "io/timer.h"
 #include "util/debug.h"
 #include "util/memory.h"
 
@@ -34,14 +35,15 @@ extern "C" void kernel_main(BootInfo *info) {
 
     Keyboard::init();
     Mouse::init();
+    Timer::set(100);
 
     Memory::init();
     prepareMemory(info);
 
     Term::init();
 
+    Idt::unmask(0);
     Idt::unmask(1);
-
     Idt::unmask(2);
     Idt::unmask(12);
 

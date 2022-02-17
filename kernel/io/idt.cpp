@@ -4,6 +4,7 @@
 
 #include "keyboard.h"
 #include "mouse.h"
+#include "timer.h"
 
 #define PIC1          0x20
 #define PIC2          0xA0
@@ -112,6 +113,7 @@ void Idt::init() {
     __ISR_SET(30);
     __ISR_SET(31);
 
+    __ISR_SET(32);
     __ISR_SET(33);
     __ISR_SET(44);
 
