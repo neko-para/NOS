@@ -1,10 +1,9 @@
 #include "term.h"
+#include "boot/gdt.h"
 
 extern "C" void kernel_main() {
+    Gdt::init();
     Term::init();
 
-    *term << "row" << 1 << endl
-        << "row" << hex << 0xFE << endl
-        << "Hello world!" << endl;
-    term->scroll(1);
+    *term << "Gdt set! Still printing well." << endl;
 }
