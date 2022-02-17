@@ -1,5 +1,6 @@
 #include "debug.h"
 #include "memory.h"
+#include "new.h"
 
 constexpr uint32_t MEMNODE_COUNT = 4096;
 constexpr uint32_t TAIL_MAGIC = 0x317839FE;
@@ -161,4 +162,58 @@ void Memory::free(void *ptr) {
         return;
     }
     insert((uint32_t)p, size);
+}
+
+static uint8_t *pageBase;
+static uint32_t pageCount;
+static uint32_t *pageBitmap;
+
+void Frame::init(uint32_t start, uint32_t npage) {
+    pageBase = reinterpret_cast<uint8_t *>(start);
+    pageCount = npage;
+    pageBitmap = new uint32_t[(npage + 31) / 32];
+}
+
+void *Frame::alloc() {
+    uint32_t x = 0, i = 0;
+    uint8_t *ptr = pageBase;
+    while (pageCount - x >= 32) {
+        if (~pageBitmap[i]) {
+            for (uint32_t j = 0; j < 32; j++) {
+                if (!(pageBitmap[i] & (1 << j))) {
+                    pageBitmap[i] |= 1 << j;
+                    return ptr + (j << 12);
+                }
+            }
+            debug() << "Why comes here?" << endl;
+        }
+        ptr += 32 << 12;
+        x += 32;
+        i++;
+    }
+    if (pageCount > x) {
+        for (uint32_t j = 0; j < pageCount - x; j++) {
+            if (!(pageBitmap[i] & (1 << j))) {
+                pageBitmap[i] |= 1 << j;
+                return ptr + (j << 12);
+            }
+        }
+    }
+    return 0;
+}
+
+void Frame::free(void *ptr) {
+    uint32_t addr = reinterpret_cast<uint32_t>(ptr);
+    if (addr & 0x3FF) {
+        debug() << "Freeing non-aligned frame!" << endl;
+        addr &= 0x3FF;
+    }
+    addr -= reinterpret_cast<uint32_t>(pageBase);
+    uint32_t i = addr >> 5;
+    uint32_t j = addr & 31;
+    if (pageBitmap[i] & (1 << j)) {
+        pageBitmap[i] &= ~(1 << j);
+    } else {
+        debug() << "Freeing non-allocated frame!" << endl;
+    }
 }

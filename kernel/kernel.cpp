@@ -1,5 +1,6 @@
 #include "boot/bootinfo.h"
 #include "boot/gdt.h"
+#include "boot/page.h"
 #include "io/idt.h"
 #include "io/io.h"
 #include "io/keyboard.h"
@@ -17,14 +18,16 @@ void prepareMemory(BootInfo *info) {
         }
         if (me->type == 1 && me->addr_lo > 0) { // skip first
             if (me->addr_lo == 0x100000) {
+                // acually always one hole
+                // use &image_size ~ 16M as kernel heap, 16M ~ 1G as pages.
                 uint32_t size = (uint32_t)&image_size;
                 me->addr_lo = (size + 0xFFF) & (~0xFFF);
+                Memory::add(me->addr_lo, 0x1000000 - me->addr_lo);
+                Frame::init(0x1000000, (me->len_lo - 0xF00000) >> 12);
             }
-            Memory::add(me->addr_lo, me->len_lo);
-            debug() << hex << me->addr_lo << '-' << (me->addr_lo + me->len_lo) << endl;
         }
     }
-    debug() << dec;
+    term() << dec;
 }
 
 extern "C" void kernel_main(BootInfo *info) {
@@ -32,15 +35,16 @@ extern "C" void kernel_main(BootInfo *info) {
     Idt::init();
 
     QemuDebug::init();
-
-    Keyboard::init();
-    Mouse::init();
-    Timer::set(100);
+    Term::init();
 
     Memory::init();
     prepareMemory(info);
 
-    Term::init();
+    Page::init();
+
+    Keyboard::init();
+    Mouse::init();
+    Timer::set(100);
 
     Idt::unmask(0);
     Idt::unmask(1);
@@ -48,6 +52,8 @@ extern "C" void kernel_main(BootInfo *info) {
     Idt::unmask(12);
 
     sti();
+
+    term() << "Everything alright!" << endl;
 
     while (true) {
         hlt();

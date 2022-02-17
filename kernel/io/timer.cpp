@@ -13,5 +13,5 @@ void Timer::set(uint32_t hz) {
 
 __attribute__((interrupt)) void isrHandler32(InterruptFrame *frame) {
     Idt::end(0);
-    term() << '.';
+    // term() << '.';
 }

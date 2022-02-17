@@ -11,3 +11,11 @@ public:
     static void *alloc(uint32_t size);
     static void free(void *ptr);
 };
+
+class Frame {
+public:
+    static void init(uint32_t start, uint32_t npage);
+
+    static void *alloc();
+    static void free(void *ptr);
+};
