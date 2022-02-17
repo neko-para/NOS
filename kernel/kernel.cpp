@@ -1,5 +1,7 @@
 #include "boot/bootinfo.h"
 #include "boot/gdt.h"
+#include "io/idt.h"
+#include "io/io.h"
 #include "io/term.h"
 #include "util/debug.h"
 #include "util/memory.h"
@@ -24,6 +26,7 @@ void prepareMemory(BootInfo *info) {
 
 extern "C" void kernel_main(BootInfo *info) {
     Gdt::init();
+    Idt::init();
 
     QemuDebug::init();
 
@@ -32,6 +35,9 @@ extern "C" void kernel_main(BootInfo *info) {
 
     Term::init();
 
-    term() << "Gdt set! Still printing well." << endl;
-    debug() << "From debug()!" << endl;
+    int a = 1 / 0;
+
+    while (true) {
+        hlt();
+    }
 }
