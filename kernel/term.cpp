@@ -3,6 +3,8 @@
 #include "string.h"
 #include "term.h"
 
+const uint16_t hexFlag = 0x0001;
+
 static uint8_t term_data[sizeof (Term)];
 Term *term;
 
@@ -85,4 +87,66 @@ void Term::update_cursor(uint8_t r, uint8_t c) {
 	outb(0x3D5, (uint8_t) (pos & 0xFF));
 	outb(0x3D4, 0x0E);
 	outb(0x3D5, (uint8_t) ((pos >> 8) & 0xFF));
+}
+
+inline char toHex(uint8_t n) {
+    return n < 10 ? n + '0' : n + 'A' - 10;
+}
+
+Term &Term::operator<<(uint16_t v) {
+    if (flag & hexFlag) {
+        putc(toHex(v >> 12));
+        putc(toHex((v >> 8) & 0xF));
+        putc(toHex((v >> 4) & 0xF));
+        putc(toHex(v & 0xF));
+    } else {
+        char buf[7];
+        int ptr = 0;
+        do {
+            buf[ptr++] = (v % 10) + '0';
+            v /= 10;
+        } while (v);
+        while (ptr) {
+            putc(buf[--ptr]);
+        }
+    }
+    return *this;
+}
+
+Term &Term::operator<<(uint32_t v) {
+    return *this << uint16_t(v >> 16) << uint16_t(v);
+}
+
+Term &Term::operator<<(int16_t v) {
+    if (v < 0) {
+        putc('-');
+        v = -v; // -65536 causes error; so does below
+    }
+    return *this << uint16_t(v);
+}
+
+Term &Term::operator<<(int32_t v) {
+    if (v < 0) {
+        putc('-');
+        v = -v;
+    }
+    return *this << uint32_t(v);
+}
+
+Term &Term::operator<<(Term &(*f)(Term &)) {
+    return f(*this);
+}
+
+Term &endl(Term &t) {
+    return t << '\n';
+}
+
+Term &hex(Term &t) {
+    t.setf(t.getf() | hexFlag);
+    return t;
+}
+
+Term &dec(Term &t) {
+    t.setf(t.getf() & (~hexFlag));
+    return t;
 }

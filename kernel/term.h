@@ -50,11 +50,48 @@ public:
     void disable_cursor();
     void update_cursor(uint8_t r, uint8_t c);
 
+    Term &operator<<(uint16_t v);
+    Term &operator<<(uint32_t v);
+    Term &operator<<(int16_t v);
+    Term &operator<<(int32_t v);
+    Term &operator<<(Term &(*f)(Term &));
+
+    Term &operator<<(void *ptr) {
+        return *this << reinterpret_cast<uint32_t>(ptr);
+    }
+
+    Term &operator<<(char c) {
+        putc(c);
+        return *this;
+    }
+
+    Term &operator<<(const char *s) {
+        puts(s);
+        return *this;
+    }
+
+    Term &operator<<(int v) {
+        return *this << int32_t(v);
+    }
+
+    void setf(uint16_t f) {
+        flag = f;
+    }
+
+    uint16_t getf() const {
+        return flag;
+    }
+
 private:
     uint16_t *buffer;
     uint8_t row = 0, column = 0;
     uint8_t width, height;
     uint8_t attrib = DEFAULT_ENTRY >> 8;
+    uint16_t flag;
 };
 
 extern Term *term;
+
+Term &endl(Term &);
+Term &hex(Term &);
+Term &dec(Term &);

@@ -3,6 +3,8 @@
 extern "C" void kernel_main() {
     Term::init();
 
-    term->puts("row1\nrow2\nHello world!\n");
+    *term << "row" << 1 << endl
+        << "row" << hex << 0xFE << endl
+        << "Hello world!" << endl;
     term->scroll(1);
 }
