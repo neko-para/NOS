@@ -32,5 +32,6 @@ public:
 
     static void init(void (*entry)());
     static void create(void (*entry)());
-    static void schedule();
+    static void exit();
+    static bool schedule();
 };

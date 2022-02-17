@@ -1,9 +1,7 @@
 #include "task.h"
 #include "../io/io.h"
 #include "../util/memory.h"
-
-#include "../io/term.h"
-#include "../util/debug.h"
+#include "../util/new.h"
 
 TaskControlBlock *taskCurrent;
 TaskControlBlock *ready, *readyEnd;
@@ -62,7 +60,22 @@ void Task::create(void (*entry)()) {
     readyEnd = task;
 }
 
-void Task::schedule() {
+void Task::exit() {
+    while (!ready) {
+        unlock();
+        hlt(); // Assume that interrupt could create some task
+        lock();
+    }
+    // although we're using this page as stack, freeing it doesn't make it invalid
+    Frame::free(reinterpret_cast<void *>(reinterpret_cast<uint32_t>(taskCurrent->esp) & 0x3FF));
+    delete taskCurrent;
+    TaskControlBlock *task = ready;
+    ready = ready->next;
+    task->setRunningState(TaskControlBlock::RUNNING);
+    switchTask(task);
+}
+
+bool Task::schedule() {
     if (ready) {
         taskCurrent->setRunningState(TaskControlBlock::READYTORUN);
         readyEnd->next = taskCurrent;
@@ -72,5 +85,8 @@ void Task::schedule() {
         ready = ready->next;
         task->setRunningState(TaskControlBlock::RUNNING);
         switchTask(task);
+        return true;
+    } else {
+        return false;
     }
 }

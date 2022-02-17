@@ -34,23 +34,27 @@ void prepareMemory(BootInfo *info) {
 void otherTask() {
     Task::unlock();
     term() << "other task created" << endl;
-    while (true) {
-        term() << "back to other" << endl;
-        hlt();
+    int n = 5;
+    while (n--) {
+        term() << "other count down " << n << endl;
         Task::lock();
         Task::schedule();
         Task::unlock();
     }
+    term() << "other task destroyed" << endl;
+    Task::lock();
+    Task::exit();
 }
 
 void mainTask() {
     term() << "main task created" << endl;
     Task::create(otherTask);
     while (true) {
-        term() << "back to main" << endl;
         hlt();
         Task::lock();
-        Task::schedule();
+        if (Task::schedule()) {
+            term() << "back to main" << endl;
+        }
         Task::unlock();
     }
 }

@@ -30,10 +30,10 @@ inline void *operator new[](size_t s) noexcept {
     return Memory::alloc(s);
 }
 
-inline void operator delete(void *ptr) noexcept {
+inline void operator delete(void *ptr, size_t) noexcept {
     Memory::free(ptr);
 }
 
-inline void operator delete[](void *ptr) noexcept {
+inline void operator delete[](void *ptr, size_t) noexcept {
     Memory::free(ptr);
 }
