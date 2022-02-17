@@ -1,5 +1,10 @@
 #pragma once
 
+#ifdef VSCODE_CPPTOOL
+#define __size_t
+typedef unsigned int size_t;
+#endif
+
 #include <stddef.h>
 
 inline void *operator new(size_t, void *p) noexcept {
