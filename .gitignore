@@ -6,3 +6,6 @@ disk/boot/kernel.bin
 disk.img
 
 install
+
+log.txt
+serial.log

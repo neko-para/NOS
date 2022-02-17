@@ -57,4 +57,4 @@ private:
     uint8_t attrib = DEFAULT_ENTRY >> 8;
 };
 
-extern Term *term;
+Term &term();

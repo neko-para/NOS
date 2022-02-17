@@ -11,7 +11,7 @@ install: $(DISK_DIR)/boot/grub/grub.cfg $(DISK_DIR)/boot/kernel.bin
 	touch install
 
 run: install
-	qemu-system-i386 -m 1G -drive format=raw,file=$(DISK_FILE)
+	qemu-system-i386 -m 1G -drive format=raw,file=$(DISK_FILE) -serial file:serial.log
 
 checkMount:
 	if ! losetup | grep '/dev/loop0'; then sudo losetup /dev/loop0 $(DISK_FILE); fi;
