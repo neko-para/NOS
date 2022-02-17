@@ -3,6 +3,7 @@
 #include "isr.h"
 
 #include "keyboard.h"
+#include "mouse.h"
 
 #define PIC1          0x20
 #define PIC2          0xA0
@@ -112,6 +113,7 @@ void Idt::init() {
     __ISR_SET(31);
 
     __ISR_SET(33);
+    __ISR_SET(44);
 
     asm volatile ( "lidt %0":: "m"(idtr) );
 }

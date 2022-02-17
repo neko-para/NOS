@@ -3,6 +3,7 @@
 #include "io/idt.h"
 #include "io/io.h"
 #include "io/keyboard.h"
+#include "io/mouse.h"
 #include "io/term.h"
 #include "util/debug.h"
 #include "util/memory.h"
@@ -32,6 +33,7 @@ extern "C" void kernel_main(BootInfo *info) {
     QemuDebug::init();
 
     Keyboard::init();
+    Mouse::init();
 
     Memory::init();
     prepareMemory(info);
@@ -39,6 +41,10 @@ extern "C" void kernel_main(BootInfo *info) {
     Term::init();
 
     Idt::unmask(1);
+
+    Idt::unmask(2);
+    Idt::unmask(12);
+
     sti();
 
     while (true) {

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stdint.h>
 #include "isr.h"
 
 class Keyboard {

@@ -19,5 +19,5 @@ void Keyboard::waitReady() {
 __attribute__((interrupt)) void isrHandler33(InterruptFrame *frame) {
     Idt::end(1);
     uint8_t ch = inb(0x60);
-    term() << ch << endl;
+    // term() << ch << endl;
 }
