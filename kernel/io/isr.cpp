@@ -20,7 +20,18 @@ __ISR_IMP(10)
 __ISR_IMP(11)
 __ISR_IMP(12)
 __ISR_IMP(13)
-__ISR_IMP(14)
+
+__attribute__((interrupt)) void isrHandler14(InterruptFrame *frame, uint32_t error) {
+    uint32_t cr2, cr3;
+    asm volatile ("movl %%cr2, %%eax; movl %%eax, %0;":"=m"(cr2)::"%eax");
+    asm volatile ("movl %%cr3, %%eax; movl %%eax, %0;":"=m"(cr3)::"%eax");
+    term() << "Page fault" << endl
+        << "Error code: " << error << endl
+        << "CR2: " << hex << cr2 << endl
+        << "CR3: " << hex << cr3 << endl;
+    asm volatile ( "cli; hlt; ");
+}
+
 __ISR_IMP(15)
 __ISR_IMP(16)
 __ISR_IMP(17)

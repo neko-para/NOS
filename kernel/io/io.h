@@ -43,3 +43,6 @@ inline void sti() {
 inline void hlt() {
     asm volatile ( "hlt" );
 }
+
+void intLock();
+void intUnlock();

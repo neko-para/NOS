@@ -7,6 +7,7 @@
 #include "io/mouse.h"
 #include "io/term.h"
 #include "io/timer.h"
+#include "process/task.h"
 #include "util/debug.h"
 #include "util/memory.h"
 
@@ -24,10 +25,34 @@ void prepareMemory(BootInfo *info) {
                 me->addr_lo = (size + 0xFFF) & (~0xFFF);
                 Memory::add(me->addr_lo, 0x1000000 - me->addr_lo);
                 Frame::init(0x1000000, (me->len_lo - 0xF00000) >> 12);
+                Page::init(me->len_lo + 0x100000);
             }
         }
     }
-    term() << dec;
+}
+
+void otherTask() {
+    Task::unlock();
+    term() << "other task created" << endl;
+    while (true) {
+        term() << "back to other" << endl;
+        hlt();
+        Task::lock();
+        Task::schedule();
+        Task::unlock();
+    }
+}
+
+void mainTask() {
+    term() << "main task created" << endl;
+    Task::create(otherTask);
+    while (true) {
+        term() << "back to main" << endl;
+        hlt();
+        Task::lock();
+        Task::schedule();
+        Task::unlock();
+    }
 }
 
 extern "C" void kernel_main(BootInfo *info) {
@@ -39,8 +64,6 @@ extern "C" void kernel_main(BootInfo *info) {
 
     Memory::init();
     prepareMemory(info);
-
-    Page::init();
 
     Keyboard::init();
     Mouse::init();
@@ -55,6 +78,11 @@ extern "C" void kernel_main(BootInfo *info) {
 
     term() << "Everything alright!" << endl;
 
+    Task::init(mainTask);
+
+    term() << "Fallout!" << endl;
+
+    cli();
     while (true) {
         hlt();
     }

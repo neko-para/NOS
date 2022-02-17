@@ -4,25 +4,28 @@
 
 Page *flatPage;
 
-void Page::init() {
+void Page::init(uint32_t maxiaddr) {
     flatPage = new Page;
-    uint32_t *entry = reinterpret_cast<uint32_t *>(Frame::alloc());
-    for (uint32_t i = 0; i < 1024; i++) {
-        entry[i] = (i << 12) | Page::NON_SUPERVISOR | Page::READWRITE | Page::PRESENT;
+    uint32_t count = (maxiaddr + (1 << 22) - 1) >> 22;
+    for (uint32_t i = 0; i < count; i++) {
+        uint32_t *entry = reinterpret_cast<uint32_t *>(Frame::alloc());
+        for (uint32_t j = 0; j < 1024; j++) {
+            entry[j] = (i << 22) | (j << 12) | Page::READWRITE | Page::PRESENT;
+        }
+        flatPage->set(i, entry, Page::READWRITE | Page::PRESENT);
     }
-    flatPage->set(0, entry, Page::NON_SUPERVISOR | Page::READWRITE | Page::PRESENT);
     flatPage->load();
     enable();
 }
 
 void Page::enable() {
-    asm volatile ( "movl %cr0, %eax; or $0x80000000, %eax; movl %eax, %cr0;" );
+    asm volatile ( "movl %cr0, %eax; orl $0x80000000, %eax; movl %eax, %cr0;" );
 }
 
 Page::Page() {
     pageDirectory = reinterpret_cast<uint32_t *>(Frame::alloc());
     for (uint32_t i = 0; i < 1024; i++) {
-        pageDirectory[i] = Page::NON_SUPERVISOR | Page::READWRITE;
+        pageDirectory[i] = Page::READWRITE;
     }
 }
 

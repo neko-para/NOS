@@ -14,8 +14,12 @@ public:
         DIRTY = 64,
     };
 
-    static void init();
+    static void init(uint32_t maxiaddr);
     static void enable();
+
+    uint32_t cr3() const {
+        return reinterpret_cast<uint32_t>(pageDirectory);
+    }
 
     Page();
 
