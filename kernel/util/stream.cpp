@@ -25,7 +25,10 @@ Stream &Stream::operator<<(uint16_t v) {
 }
 
 Stream &Stream::operator<<(uint32_t v) {
-    return *this << uint16_t(v >> 16) << uint16_t(v);
+    if (v >> 16) {
+        *this << uint16_t(v >> 16);
+    }
+    return *this << uint16_t(v);
 }
 
 Stream &Stream::operator<<(int16_t v) {

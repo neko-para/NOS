@@ -2,6 +2,7 @@
 #include "boot/gdt.h"
 #include "io/idt.h"
 #include "io/io.h"
+#include "io/keyboard.h"
 #include "io/term.h"
 #include "util/debug.h"
 #include "util/memory.h"
@@ -30,12 +31,15 @@ extern "C" void kernel_main(BootInfo *info) {
 
     QemuDebug::init();
 
+    Keyboard::init();
+
     Memory::init();
     prepareMemory(info);
 
     Term::init();
 
-    int a = 1 / 0;
+    Idt::unmask(1);
+    sti();
 
     while (true) {
         hlt();

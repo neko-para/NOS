@@ -2,6 +2,8 @@
 #include "io.h"
 #include "isr.h"
 
+#include "keyboard.h"
+
 #define PIC1          0x20
 #define PIC2          0xA0
 #define PIC1_COMMAND  PIC1
@@ -109,6 +111,8 @@ void Idt::init() {
     __ISR_SET(30);
     __ISR_SET(31);
 
+    __ISR_SET(33);
+
     asm volatile ( "lidt %0":: "m"(idtr) );
 }
 
@@ -132,4 +136,11 @@ void Idt::unmask(uint8_t irq) {
         irq -= 8;
     }
     outb(port, inb(port) & ~(1 << irq));
+}
+
+void Idt::end(uint8_t irq) {
+    if (irq >= 8) {
+        outb(PIC2_COMMAND, 0x20);
+    }
+    outb(PIC1_COMMAND, 0x20);
 }

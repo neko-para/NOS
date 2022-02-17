@@ -36,4 +36,5 @@ public:
 
     static void mask(uint8_t irq);
     static void unmask(uint8_t irq);
+    static void end(uint8_t irq);
 };
