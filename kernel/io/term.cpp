@@ -1,7 +1,7 @@
 #include "io.h"
-#include "new.h"
-#include "string.h"
 #include "term.h"
+#include "../util/new.h"
+#include "../util/string.h"
 
 const uint16_t hexFlag = 0x0001;
 

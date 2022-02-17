@@ -1,6 +1,6 @@
-#include "term.h"
+#include "io/term.h"
 #include "boot/gdt.h"
-#include "debug.h"
+#include "util/debug.h"
 
 extern "C" void kernel_main() {
     Gdt::init();

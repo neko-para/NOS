@@ -1,6 +1,6 @@
 #include "debug.h"
-#include "io.h"
 #include "new.h"
+#include "../io/io.h"
 
 static uint8_t debug_data[sizeof (QemuDebug)];
 static QemuDebug *pdebug;

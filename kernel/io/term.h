@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "stream.h"
+#include "../util/stream.h"
 
 inline uint8_t term_color(uint8_t fore, uint8_t back) {
     return fore | (back << 4);
