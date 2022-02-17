@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "stream.h"
 
 inline uint8_t term_color(uint8_t fore, uint8_t back) {
     return fore | (back << 4);
@@ -10,7 +11,7 @@ inline uint16_t term_entry(uint8_t color, char ch) {
     return ch | ((uint16_t)color << 8);
 }
 
-class Term {
+class Term : public Stream {
 public:
     enum Color {
         BLACK = 0,
@@ -41,8 +42,7 @@ private:
 public:
     void clear(uint16_t entry);
 
-    void putc(char ch);
-    void puts(const char *str);
+    virtual void put(char ch) override;
 
     void scroll(uint8_t nrow, uint16_t fill = DEFAULT_ENTRY);
 
@@ -50,48 +50,11 @@ public:
     void disable_cursor();
     void update_cursor(uint8_t r, uint8_t c);
 
-    Term &operator<<(uint16_t v);
-    Term &operator<<(uint32_t v);
-    Term &operator<<(int16_t v);
-    Term &operator<<(int32_t v);
-    Term &operator<<(Term &(*f)(Term &));
-
-    Term &operator<<(void *ptr) {
-        return *this << reinterpret_cast<uint32_t>(ptr);
-    }
-
-    Term &operator<<(char c) {
-        putc(c);
-        return *this;
-    }
-
-    Term &operator<<(const char *s) {
-        puts(s);
-        return *this;
-    }
-
-    Term &operator<<(int v) {
-        return *this << int32_t(v);
-    }
-
-    void setf(uint16_t f) {
-        flag = f;
-    }
-
-    uint16_t getf() const {
-        return flag;
-    }
-
 private:
     uint16_t *buffer;
     uint8_t row = 0, column = 0;
     uint8_t width, height;
     uint8_t attrib = DEFAULT_ENTRY >> 8;
-    uint16_t flag;
 };
 
 extern Term *term;
-
-Term &endl(Term &);
-Term &hex(Term &);
-Term &dec(Term &);
