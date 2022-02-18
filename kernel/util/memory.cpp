@@ -120,6 +120,8 @@ static uint32_t find_alloc(uint32_t size) {
             find = node;
             fsize = node->size;
         }
+        pnext = &node->next;
+        node = node->next;
     }
     if (find == 0) {
         debug() << "ERR: cannot alloc memory!\n";

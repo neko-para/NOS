@@ -102,6 +102,14 @@ bool Task::schedule() {
     }
 }
 
+bool Task::lockSchedule() {
+    bool x;
+    lock();
+    x = schedule();
+    unlock();
+    return x;
+}
+
 static uint32_t prepare_user_stack(void (*entry)()) {
     uint32_t bottom = reinterpret_cast<uint32_t>(Frame::alloc()) + (1 << 12);
     uint32_t *stack = reinterpret_cast<uint32_t *>(bottom);

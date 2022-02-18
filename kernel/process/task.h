@@ -36,6 +36,7 @@ public:
     static void create(void (*entry)(), uint32_t cr3 = 0);
     static void exit();
     static bool schedule();
+    static bool lockSchedule();
 
     static void enterRing3(void (*entry)());
 };

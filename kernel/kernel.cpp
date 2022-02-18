@@ -2,6 +2,7 @@
 #include "boot/gdt.h"
 #include "boot/page.h"
 #include "filesystem/mbr.h"
+#include "filesystem/ext2.h"
 #include "io/idt.h"
 #include "io/io.h"
 #include "io/keyboard.h"
@@ -44,6 +45,13 @@ void subTask() {
     Task::enterRing3(userTask);
 }
 
+void dumpDirEntry(EXT2::DirectoryEntry *entry) {
+    for (int i = 0; i < entry->length_lo; i++) {
+        term() << entry->name[i];
+    }
+    term() << " : " << entry->inode << endl;
+}
+
 void mainTask() {
     term() << "main task created" << endl;
 /*
@@ -61,18 +69,14 @@ void mainTask() {
 */
     MBR mbr;
     mbr.load(0);
-    term() << "Signature is " << hex << mbr.signature << dec << endl;
-    for (int i = 0; i < 4; i++) {
-        term() << "Partition " << i << " attrib " << hex << mbr.entry[i].attrib << dec;
-        if (mbr.entry[i].isValid()) {
-            term() << " valid";
-            if (mbr.entry[i].isActive()) {
-                term() << " active";
-            }
-            term() << "; starting from " << mbr.entry[i].lba_start << " with " << mbr.entry[i].count << " sectors";
-        }
-        term() << endl;
-    }
+    // we know partition 0 is our boot partition
+    EXT2 *ext2 = new EXT2(0, mbr.entry[0].lba_start, mbr.entry[0].count);
+    auto root = ext2->root();
+    root->enterDirectory("boot");
+    term() << "----" << endl;
+    root->enumDirectory(dumpDirEntry);
+    term() << "----" << endl;
+    delete root;
     while (true) {
         hlt();
         if (Task::lockSchedule()) {

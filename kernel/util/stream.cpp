@@ -25,10 +25,20 @@ Stream &Stream::operator<<(uint16_t v) {
 }
 
 Stream &Stream::operator<<(uint32_t v) {
-    if (v >> 16) {
-        *this << uint16_t(v >> 16);
+    if (flag & HEX) {
+        return *this << uint16_t(v >> 16) << uint16_t(v);
+    } else {
+        char buf[12];
+        int ptr = 0;
+        do {
+            buf[ptr++] = (v % 10) + '0';
+            v /= 10;
+        } while (v);
+        while (ptr) {
+            put(buf[--ptr]);
+        }
+        return *this;
     }
-    return *this << uint16_t(v);
 }
 
 Stream &Stream::operator<<(int16_t v) {
