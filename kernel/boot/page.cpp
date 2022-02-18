@@ -10,9 +10,9 @@ void Page::init(uint32_t maxiaddr) {
     for (uint32_t i = 0; i < count; i++) {
         uint32_t *entry = reinterpret_cast<uint32_t *>(Frame::alloc());
         for (uint32_t j = 0; j < 1024; j++) {
-            entry[j] = (i << 22) | (j << 12) | Page::READWRITE | Page::PRESENT;
+            entry[j] = (i << 22) | (j << 12) | READWRITE | PRESENT;
         }
-        flatPage->set(i, entry, Page::READWRITE | Page::PRESENT);
+        flatPage->set(i, entry, READWRITE | PRESENT);
     }
     flatPage->load();
     enable();

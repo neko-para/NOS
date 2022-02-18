@@ -27,3 +27,15 @@ switchTask:
     popl %ebx
 
     ret
+
+.global switchRing3
+switchRing3:
+    movw $0x23, %ax
+    movw %ax, %ds
+    movw %ax, %es
+    movw %ax, %fs
+    movw %ax, %gs
+
+    movl 4(%esp), %eax
+    movl %eax, %esp
+    iret

@@ -2,7 +2,7 @@
 #include "../io/term.h"
 
 #define __ISR_IMP(n) __attribute__((interrupt)) void isrHandler##n(InterruptFrame *frame, uint32_t error) { \
-    term() << "EXCEPTION: " #n << " ; ERROR CODE: " << error << endl; \
+    term() << "EXCEPTION: " #n << " ; ERROR CODE: " << hex << error << endl; \
     asm volatile ( "cli; hlt; "); \
 }
 
@@ -19,7 +19,30 @@ __ISR_IMP(9)
 __ISR_IMP(10)
 __ISR_IMP(11)
 __ISR_IMP(12)
-__ISR_IMP(13)
+
+__attribute__((interrupt)) void isrHandler13(InterruptFrame *frame, uint32_t error) {
+    term() << "Generic Protection Fault" << endl;
+    if (error > 0) {
+        if (error & 1) {
+            term() << "External" << endl;
+        }
+        switch ((error >> 1) & 3) {
+        case 0:
+            term() << "Gdt ";
+            break;
+        case 1:
+        case 3:
+            term() << "Idt ";
+            break;
+        case 2:
+            term() << "Ldt ";
+            break;
+        }
+        term() << hex << (error >> 3) << endl;
+    }
+    asm volatile ( "cli; hlt; ");
+}
+
 
 __attribute__((interrupt)) void isrHandler14(InterruptFrame *frame, uint32_t error) {
     uint32_t cr2, cr3;

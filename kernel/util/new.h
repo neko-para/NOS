@@ -37,3 +37,11 @@ inline void operator delete(void *ptr, size_t) noexcept {
 inline void operator delete[](void *ptr, size_t) noexcept {
     Memory::free(ptr);
 }
+
+inline void operator delete(void *ptr) noexcept {
+    Memory::free(ptr);
+}
+
+inline void operator delete[](void *ptr) noexcept {
+    Memory::free(ptr);
+}

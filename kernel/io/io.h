@@ -44,5 +44,15 @@ inline void hlt() {
     asm volatile ( "hlt" );
 }
 
+inline uint32_t geteflags() {
+    uint32_t f;
+    asm volatile ( "pushf; popl %0" : "=a"(f) );
+    return f;
+}
+
+inline void seteflags(uint32_t f) {
+    asm volatile ( "pushl %0; popf;" : "=m"(f) );
+}
+
 void intLock();
 void intUnlock();

@@ -5,6 +5,7 @@
 #include "keyboard.h"
 #include "mouse.h"
 #include "timer.h"
+#include "../process/syscall.h"
 
 #define PIC1          0x20
 #define PIC2          0xA0
@@ -76,9 +77,12 @@ void Idt::init() {
     idtr.base = reinterpret_cast<uint32_t>(idt);
     idtr.limit = sizeof (idt) - 1;
 
-#define __INT_SET(n, f) idt[n].set(reinterpret_cast<uint32_t>(f), IdtEntry::A_PRESENT | IdtEntry::A_GATE_INT_32)
+#define __INT(n, f, a) idt[n].set(reinterpret_cast<uint32_t>(f), a)
 
-#define __ISR_SET(n) __INT_SET(n, isrHandler##n)
+#define __INT_K(n, f) __INT(n, f, IdtEntry::A_PRESENT | IdtEntry::A_GATE_INT_32 | IdtEntry::A_DPL_0)
+#define __INT_U(n, f) __INT(n, f, IdtEntry::A_PRESENT | IdtEntry::A_GATE_INT_32 | IdtEntry::A_DPL_3)
+
+#define __ISR_SET(n) __INT_K(n, isrHandler##n)
 
     __ISR_SET(0);
     __ISR_SET(1);
@@ -116,6 +120,8 @@ void Idt::init() {
     __ISR_SET(32);
     __ISR_SET(33);
     __ISR_SET(44);
+
+    __INT_U(128, isrHandler128);
 
     asm volatile ( "lidt %0":: "m"(idtr) );
 }

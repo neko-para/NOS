@@ -31,24 +31,32 @@ void prepareMemory(BootInfo *info) {
     }
 }
 
-void otherTask() {
+void userTask() {
+    const char *str = "Hello world from Ring3!\n";
+    asm volatile ( "movl %0, %%esi; movl $2, %%eax; int $0x80;" : "=m"(str) );
+    asm volatile ( "movl $0, %eax; int $0x80;" );
+}
+
+void subTask() {
     Task::unlock();
-    term() << "other task created" << endl;
-    int n = 5;
-    while (n--) {
-        term() << "other count down " << n << endl;
-        Task::lock();
-        Task::schedule();
-        Task::unlock();
-    }
-    term() << "other task destroyed" << endl;
-    Task::lock();
-    Task::exit();
+    term() << "subtask created" << endl;
+    Task::enterRing3(userTask);
 }
 
 void mainTask() {
     term() << "main task created" << endl;
-    Task::create(otherTask);
+
+    Page *userFlatPage = new Page;
+    uint32_t count = 1 << 8;
+    for (uint32_t i = 0; i < count; i++) {
+        uint32_t *entry = reinterpret_cast<uint32_t *>(Frame::alloc());
+        for (uint32_t j = 0; j < 1024; j++) {
+            entry[j] = (i << 22) | (j << 12) | Page::NON_SUPERVISOR | Page::READWRITE | Page::PRESENT;
+        }
+        userFlatPage->set(i, entry, Page::NON_SUPERVISOR | Page::READWRITE | Page::PRESENT);
+    }
+
+    Task::create(subTask, userFlatPage->cr3());
     while (true) {
         hlt();
         Task::lock();

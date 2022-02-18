@@ -1,18 +1,25 @@
 #include "gdt.h"
+#include "tss.h"
 
 extern "C" void setGdt(void *pgdt, uint16_t size);
 extern "C" void reloadSegments();
 
-constexpr int GDTEntryCount = 3;
+constexpr int GDTEntryCount = 6;
 static uint8_t gdt_data[sizeof (Gdt) * GDTEntryCount];
 
 void Gdt::init() {
+    sysTss.ss0 = 0x10;
+
     Gdt *gdt = reinterpret_cast<Gdt *>(gdt_data);
     gdt[0].set(0, 0, 0, 0);
     gdt[1].set(0, 0x000FFFFF, Gdt::A_PRESENT | Gdt::A_DPL_0 | Gdt::A_NOT_SYSTEM | Gdt::A_EXECUTABLE | Gdt::A_READ_WRITE, Gdt::F_GRANULARITY | Gdt::F_SIZE);
     gdt[2].set(0, 0x000FFFFF, Gdt::A_PRESENT | Gdt::A_DPL_0 | Gdt::A_NOT_SYSTEM | Gdt::A_READ_WRITE, Gdt::F_GRANULARITY | Gdt::F_SIZE);
+    gdt[3].set(0, 0x000FFFFF, Gdt::A_PRESENT | Gdt::A_DPL_3 | Gdt::A_NOT_SYSTEM | Gdt::A_EXECUTABLE | Gdt::A_READ_WRITE, Gdt::F_GRANULARITY | Gdt::F_SIZE);
+    gdt[4].set(0, 0x000FFFFF, Gdt::A_PRESENT | Gdt::A_DPL_3 | Gdt::A_NOT_SYSTEM | Gdt::A_READ_WRITE, Gdt::F_GRANULARITY | Gdt::F_SIZE);
+    gdt[5].set(reinterpret_cast<uint32_t>(&sysTss), sizeof (Tss), Gdt::A_PRESENT | Gdt::A_EXECUTABLE | Gdt::A_ACCESS, 0);
     setGdt(gdt, sizeof (gdt_data));
     reloadSegments();
+    asm volatile ( "movw $0x28, %ax; ltr %ax;" );
 }
 
 void Gdt::setbase(uint32_t base) {
