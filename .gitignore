@@ -8,6 +8,7 @@ disk.img
 
 system/*
 !system/*.cpp
+!system/*.h
 !system/Makefile
 
 install

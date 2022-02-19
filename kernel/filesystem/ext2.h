@@ -123,12 +123,22 @@ public:
         bool isDir() {
             return inode->type_permissions & Inode::T_DIRECTORY;
         }
+        bool isFile() {
+            return inode->type_permissions & Inode::T_REGULAR_FILE;
+        }
 
         void enumDirectory(void (*func)(DirectoryEntry *entry));
-        bool enterDirectory(const char *dir);
+        uint32_t contentSize() const {
+            return inode->size_lo;
+        }
+        void *readContent() const {
+            return ext2->readInodeContent(inode);
+        }
+
+        Iterator *get(const char *path);
 
     private:
-        Iterator(EXT2 *ext2);
+        Iterator(EXT2 *ext2, uint32_t id = 2);
         EXT2 *ext2;
         uint32_t ID;
         Inode *inode;

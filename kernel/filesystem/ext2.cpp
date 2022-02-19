@@ -12,9 +12,9 @@ void EXT2::SuperBlock::locateInode(uint32_t i, uint32_t &group, uint32_t &block,
 }
 
 
-EXT2::Iterator::Iterator(EXT2 *ext2) : ext2(ext2) {
-    this->ID = 2;
-    this->inode = ext2->readInode(2);
+EXT2::Iterator::Iterator(EXT2 *ext2, uint32_t id) : ext2(ext2) {
+    this->ID = id;
+    this->inode = ext2->readInode(id);
 }
 
 EXT2::Iterator::~Iterator() {
@@ -33,20 +33,18 @@ void EXT2::Iterator::enumDirectory(void (*func)(DirectoryEntry *entry)) {
     Memory::free(content);
 }
 
-bool EXT2::Iterator::enterDirectory(const char *dir) {
+EXT2::Iterator *EXT2::Iterator::get(const char *path) {
     uint32_t sz = 0;
-    uint32_t sl = strlen(dir);
+    uint32_t sl = strlen(path);
     void *content = ext2->readInodeContent(inode);
     EXT2::DirectoryEntry *entry = reinterpret_cast<EXT2::DirectoryEntry *>(content);
     while (sz < inode->size_lo) {
         if (sl == entry->length_lo) {
-            if (!memcmp(dir, entry->name, sl)) {
+            if (!memcmp(path, entry->name, sl)) {
                 if (entry->inode != ID) { // incase symlink to itself
-                    ID = entry->inode;
-                    delete inode;
-                    inode = ext2->readInode(ID);
+                    auto it = new Iterator(ext2, entry->inode);
                     Memory::free(content);
-                    return true;
+                    return it;
                 }
             }
         }
@@ -54,9 +52,8 @@ bool EXT2::Iterator::enterDirectory(const char *dir) {
         entry = entry->next();
     }
     Memory::free(content);
-    return false;
+    return 0;
 }
-
 
 EXT2::EXT2(uint32_t drive, uint32_t start, uint32_t size) : drive(drive), base(start), length(size) {
     Disk::command(drive, 1, base + 2, Disk::C_READ);

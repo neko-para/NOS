@@ -1,4 +1,5 @@
 .extern taskCurrent
+.extern sysTss
 
 .global switchTask
 switchTask:
@@ -14,6 +15,8 @@ switchTask:
     movl %esi, (taskCurrent)
 
     movl 0(%esi), %esp
+    movl 20(%esi), %eax
+    movl %eax, 4 + sysTss
     movl 4(%esi), %eax
 
     movl %cr3, %ecx

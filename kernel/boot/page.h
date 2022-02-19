@@ -21,10 +21,13 @@ public:
         return reinterpret_cast<uint32_t>(pageDirectory);
     }
 
-    Page();
+    Page(uint32_t *preset = 0);
 
     void set(uint32_t index, uint32_t *pageEntry, uint8_t attrib);
     void load();
+
+    void autoSet(uint32_t phyAddr, uint32_t virAddr, uint8_t attrib);
+    void autoSet(uint32_t phyAddr, uint32_t virAddr, uint32_t size, uint8_t attrib);
 
 private:
     uint32_t *pageDirectory;

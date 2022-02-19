@@ -206,9 +206,9 @@ void *Frame::alloc() {
 
 void Frame::free(void *ptr) {
     uint32_t addr = reinterpret_cast<uint32_t>(ptr);
-    if (addr & 0x3FF) {
+    if (addr & 0xFFF) {
         debug() << "Freeing non-aligned frame!" << endl;
-        addr &= 0x3FF;
+        addr &= 0xFFF;
     }
     addr -= reinterpret_cast<uint32_t>(pageBase);
     uint32_t i = addr >> 5;

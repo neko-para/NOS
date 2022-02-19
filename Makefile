@@ -3,8 +3,7 @@ DISK_FILE=disk.img
 MOUNT_DIR=/mnt/nos
 
 install: $(DISK_DIR)/boot/grub/grub.cfg $(DISK_DIR)/boot/kernel.bin
-	make checkMount
-	make -C system install
+	make checkSystem
 	sudo mkdir -p $(MOUNT_DIR)/boot/grub $(MOUNT_DIR)/bin
 	sudo cp $(DISK_DIR)/boot/grub/grub.cfg $(MOUNT_DIR)/boot/grub
 	sudo cp $(DISK_DIR)/boot/kernel.bin $(MOUNT_DIR)/boot
@@ -14,6 +13,9 @@ install: $(DISK_DIR)/boot/grub/grub.cfg $(DISK_DIR)/boot/kernel.bin
 
 run: install
 	qemu-system-i386 -m 1G -drive format=raw,file=$(DISK_FILE) -serial file:serial.log
+
+checkSystem: checkMount
+	make -C system install
 
 checkMount:
 	if ! [ -e $(DISK_FILE) ]; then make unMountAll; ./setup.sh; fi
@@ -30,4 +32,4 @@ unMountAll:
 clean:
 	-rm -rf .xmake build $(DISK_DIR)/boot/kernel.bin c install
 
-.PHONY: checkMount unMountAll run clean
+.PHONY: checkSystem checkMount unMountAll run clean

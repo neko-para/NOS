@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "elf.h"
 
 struct TaskControlBlock {
     enum {
@@ -33,10 +34,11 @@ public:
     static void unlock();
 
     static void init(void (*entry)());
-    static void create(void (*entry)(), uint32_t cr3 = 0);
+    static void create(void (*entry)(uint32_t), uint32_t cr3 = 0, uint32_t param = 0);
     static void exit();
     static bool schedule();
     static bool lockSchedule();
 
     static void enterRing3(void (*entry)());
+    static void loadELF(ELF *elf);
 };
