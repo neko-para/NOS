@@ -169,16 +169,46 @@ void Memory::free(void *ptr) {
 static uint8_t *pageBase;
 static uint32_t pageCount;
 static uint32_t *pageBitmap;
+static uint32_t pageSkip;
 
 void Frame::init(uint32_t start, uint32_t npage) {
     pageBase = reinterpret_cast<uint8_t *>(start);
     pageCount = npage;
     pageBitmap = new uint32_t[(npage + 31) / 32];
+    pageSkip = ((((1 << 27) - start) >> 12) + 31) / 32; // 12 + 5
 }
 
 void *Frame::alloc() {
     uint32_t x = 0, i = 0;
     uint8_t *ptr = pageBase;
+    while (pageCount - x >= 32) {
+        if (~pageBitmap[i]) {
+            for (uint32_t j = 0; j < 32; j++) {
+                if (!(pageBitmap[i] & (1 << j))) {
+                    pageBitmap[i] |= 1 << j;
+                    return ptr + (j << 12);
+                }
+            }
+            debug() << "Why comes here?" << endl;
+        }
+        ptr += 32 << 12;
+        x += 32;
+        i++;
+    }
+    if (pageCount > x) {
+        for (uint32_t j = 0; j < pageCount - x; j++) {
+            if (!(pageBitmap[i] & (1 << j))) {
+                pageBitmap[i] |= 1 << j;
+                return ptr + (j << 12);
+            }
+        }
+    }
+    return 0;
+}
+
+void *Frame::allocUpper() {
+    uint32_t x = pageSkip * 32, i = pageSkip;
+    uint8_t *ptr = pageBase + (x << 12);
     while (pageCount - x >= 32) {
         if (~pageBitmap[i]) {
             for (uint32_t j = 0; j < 32; j++) {
@@ -211,6 +241,7 @@ void Frame::free(void *ptr) {
         addr &= 0xFFF;
     }
     addr -= reinterpret_cast<uint32_t>(pageBase);
+    addr >>= 12;
     uint32_t i = addr >> 5;
     uint32_t j = addr & 31;
     if (pageBitmap[i] & (1 << j)) {

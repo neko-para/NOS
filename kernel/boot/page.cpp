@@ -42,6 +42,16 @@ void Page::load() {
     asm volatile ( "movl %0, %%eax; movl %%eax, %%cr3;" : "=m"(pageDirectory) :: "%eax" );
 }
 
+bool Page::isSet(uint32_t virAddr) {
+    uint32_t virPre = virAddr >> 22;
+    uint32_t virMid = (virAddr >> 12) & 0x3FF;
+    if (!pageDirectory[virPre]) {
+        return false;
+    }
+    uint32_t *entry = reinterpret_cast<uint32_t *>(pageDirectory[virPre] & ~0xFFF);
+    return entry[virMid] != 0;
+}
+
 void Page::autoSet(uint32_t phyAddr, uint32_t virAddr, uint8_t attrib) {
     uint32_t phyPre = phyAddr & ~0xFFF;
     uint32_t virPre = virAddr >> 22;
@@ -66,4 +76,13 @@ void Page::autoSet(uint32_t phyAddr, uint32_t virAddr, uint32_t size, uint8_t at
         phyAddr += 0x1000;
         virAddr += 0x1000;
     }
+}
+
+void Page::free() {
+    for (int i = 0; i < 1024; i++) {
+        if (pageDirectory[i]) {
+            Frame::free(reinterpret_cast<void *>(pageDirectory[i] & ~0xFFF));
+        }
+    }
+    Frame::free(pageDirectory);
 }

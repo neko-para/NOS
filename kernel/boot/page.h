@@ -22,12 +22,16 @@ public:
     }
 
     Page(uint32_t *preset = 0);
+    Page(uint32_t cr3) : Page(reinterpret_cast<uint32_t *>(cr3)) {}
 
     void set(uint32_t index, uint32_t *pageEntry, uint8_t attrib);
     void load();
 
+    bool isSet(uint32_t virAddr);
     void autoSet(uint32_t phyAddr, uint32_t virAddr, uint8_t attrib);
     void autoSet(uint32_t phyAddr, uint32_t virAddr, uint32_t size, uint8_t attrib);
+
+    void free();
 
 private:
     uint32_t *pageDirectory;

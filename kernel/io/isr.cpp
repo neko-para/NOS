@@ -1,5 +1,7 @@
 #include "isr.h"
 #include "../io/term.h"
+#include "../process/task.h"
+#include "../util/memory.h"
 
 #define __ISR_IMP(n) __attribute__((interrupt)) void isrHandler##n(InterruptFrame *frame, uint32_t error) { \
     term() << "EXCEPTION: " #n << " ; ERROR CODE: " << hex << error << endl; \
@@ -48,11 +50,13 @@ __attribute__((interrupt)) void isrHandler14(InterruptFrame *frame, uint32_t err
     uint32_t cr2, cr3;
     asm volatile ("movl %%cr2, %%eax; movl %%eax, %0;":"=m"(cr2)::"%eax");
     asm volatile ("movl %%cr3, %%eax; movl %%eax, %0;":"=m"(cr3)::"%eax");
-    term() << "Page fault" << endl
-        << "Error code: " << error << endl
-        << "CR2: " << hex << cr2 << endl
-        << "CR3: " << hex << cr3 << endl;
-    asm volatile ( "cli; hlt; ");
+    if (((error | 2) & 7) == 6 && cr2 >= (1 << 27) && cr2 < (1 << 30)) {
+        term() << "Resolve page fault!" << endl;
+        taskCurrent->mapPage(cr2);
+    } else {
+        term() << "Page fault: " << error << ' ' << hex << cr2 << ' ' << cr3 << dec << endl;
+        asm volatile ( "cli; hlt; ");
+    }
 }
 
 __ISR_IMP(15)

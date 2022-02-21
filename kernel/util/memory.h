@@ -17,5 +17,6 @@ public:
     static void init(uint32_t start, uint32_t npage);
 
     static void *alloc();
+    static void *allocUpper(); // Only over 128M
     static void free(void *ptr);
 };

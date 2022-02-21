@@ -17,10 +17,20 @@ struct TaskControlBlock {
     uint32_t state;
     uint32_t tid;
     uint32_t kesp;
+    uint32_t *pages;
+    uint32_t npage, npageCapa;
+
+    TaskControlBlock();
+    TaskControlBlock(const TaskControlBlock &) = delete;
+    ~TaskControlBlock();
+    TaskControlBlock &operator=(const TaskControlBlock &) = delete;
 
     void setRunningState(uint32_t s) {
         state = (state & RS_MASK) | s;
     }
+    void mapPage(uint32_t virAddr);
+    void mapPage(uint32_t virAddr, uint32_t phyAddr);
+    void storePage(uint32_t page);
 };
 
 extern TaskControlBlock *taskCurrent;
