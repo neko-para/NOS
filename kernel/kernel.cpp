@@ -11,6 +11,7 @@
 #include "io/timer.h"
 #include "process/elf.h"
 #include "process/task.h"
+#include "process/semaphore.h"
 #include "util/debug.h"
 #include "util/memory.h"
 
@@ -34,35 +35,29 @@ void prepareMemory(BootInfo *info) {
     }
 }
 
-TaskControlBlock *mainTCB;
+Semaphore *term_semaphore;
 
-void subTask(uint32_t ) {
+void request(uint32_t ) {
     Task::unlock();
-    MBR mbr;
-    mbr.load(0);
-    EXT2 *ext2 = new EXT2(0, mbr.entry[0].lba_start, mbr.entry[0].count);
-    auto file = ext2->root()->get("bin")->get("test");
-    void *prog = file->readContent();
-    delete file;
-    ELF *elf = new ELF(prog);
-    Task::loadELF(elf);
 
-    Task::unblock(mainTCB);
+    while (true) {
+        term_semaphore->lock();
+        term() << currentTask->tid;
+        term_semaphore->unlock();
+    }
 
     Task::exit();
 }
 
 void mainTask() {
     term() << "main task created" << endl;
-    mainTCB = taskCurrent;
-    Task::create(subTask);
-    Task::block();
-    term() << "I'm back!" << endl;
 
-    while (true) {
-        hlt();
-        Task::lockSchedule();
-    }
+    term_semaphore = new Semaphore(1);
+
+    Task::create(request, 0, 0, 9);
+    Task::create(request, 0, 0, 9);
+
+    Task::exit();
 }
 
 extern "C" void kernel_main(BootInfo *info) {
@@ -77,7 +72,7 @@ extern "C" void kernel_main(BootInfo *info) {
 
     Keyboard::init();
     Mouse::init();
-    Timer::set(100);
+    Timer::set(1000);
 
     Idt::unmask(0);
     Idt::unmask(1);
@@ -85,8 +80,6 @@ extern "C" void kernel_main(BootInfo *info) {
     Idt::unmask(12);
 
     sti();
-
-    term() << "Everything alright!" << endl;
 
     Task::init(mainTask);
 

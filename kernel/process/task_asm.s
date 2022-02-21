@@ -1,4 +1,4 @@
-.extern taskCurrent
+.extern currentTask
 .extern sysTss
 
 .global switchTask
@@ -8,11 +8,11 @@ switchTask:
     pushl %edi
     pushl %ebp
 
-    movl (taskCurrent), %edi
+    movl (currentTask), %edi
     movl %esp, (%edi)
 
     movl 20(%esp), %esi
-    movl %esi, (taskCurrent)
+    movl %esi, (currentTask)
 
     movl 0(%esi), %esp
     movl 20(%esi), %eax

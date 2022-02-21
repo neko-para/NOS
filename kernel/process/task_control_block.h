@@ -26,7 +26,7 @@ struct TaskControlBlock {
     TaskControlBlock &operator=(const TaskControlBlock &) = delete;
 
     void setRunningState(uint32_t s) {
-        state = (state & RS_MASK) | s;
+        state = (state & ~RS_MASK) | s;
     }
 
     uint32_t getRunningState() const {
@@ -38,7 +38,7 @@ struct TaskControlBlock {
     void storePage(uint32_t page);
 };
 
-extern TaskControlBlock *taskCurrent;
+extern TaskControlBlock *currentTask;
 
 extern "C" void switchTask(TaskControlBlock *target);
 extern "C" void switchRing3(uint32_t targetSp);

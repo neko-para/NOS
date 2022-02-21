@@ -52,7 +52,7 @@ __attribute__((interrupt)) void isrHandler14(InterruptFrame *frame, uint32_t err
     asm volatile ("movl %%cr3, %%eax; movl %%eax, %0;":"=m"(cr3)::"%eax");
     if (((error | 2) & 7) == 6 && cr2 >= (1 << 27) && cr2 < (1 << 30)) {
         term() << "Resolve page fault!" << endl;
-        taskCurrent->mapPage(cr2);
+        currentTask->mapPage(cr2);
     } else {
         term() << "Page fault: " << error << ' ' << hex << cr2 << ' ' << cr3 << dec << endl;
         asm volatile ( "cli; hlt; ");

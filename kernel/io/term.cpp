@@ -1,5 +1,6 @@
 #include "io.h"
 #include "term.h"
+#include "../process/task.h"
 #include "../util/new.h"
 #include "../util/string.h"
 
@@ -25,11 +26,12 @@ void Term::clear(uint16_t entry) {
 }
 
 void Term::put(char ch) {
+    PostponeScheduleLock::lock();
     if (ch == '\n') {
         goto _next_row;
     } else if (ch == '\r') {
         column = 0;
-        return;
+        goto _end;
     } else if (ch == '\b') {
         column = column ? column - 1 : 0;
         goto _end;
@@ -45,9 +47,11 @@ _next_row:
     }
 _end:
     pterm->update_cursor(row, column);
+    PostponeScheduleLock::unlock();
 }
 
 void Term::scroll(uint8_t nrow, uint16_t fill) {
+    PostponeScheduleLock::lock();
     if (nrow >= height) {
         clear(fill);
         row = 0;
@@ -59,28 +63,31 @@ void Term::scroll(uint8_t nrow, uint16_t fill) {
         row -= nrow;
     }
     update_cursor(row, column);
+    PostponeScheduleLock::unlock();
 }
 
 void Term::enable_cursor(uint8_t cursor_start, uint8_t cursor_end) {
-	outb(0x3D4, 0x0A);
-	outb(0x3D5, (inb(0x3D5) & 0xC0) | cursor_start);
+    outb(0x3D4, 0x0A);
+    outb(0x3D5, (inb(0x3D5) & 0xC0) | cursor_start);
  
-	outb(0x3D4, 0x0B);
-	outb(0x3D5, (inb(0x3D5) & 0xE0) | cursor_end);
+    outb(0x3D4, 0x0B);
+    outb(0x3D5, (inb(0x3D5) & 0xE0) | cursor_end);
 }
 
 void Term::disable_cursor() {
-	outb(0x3D4, 0x0A);
-	outb(0x3D5, 0x20);
+    outb(0x3D4, 0x0A);
+    outb(0x3D5, 0x20);
 }
 
 void Term::update_cursor(uint8_t r, uint8_t c) {
     uint16_t pos = r * width + c;
  
-	outb(0x3D4, 0x0F);
-	outb(0x3D5, (uint8_t) (pos & 0xFF));
-	outb(0x3D4, 0x0E);
-	outb(0x3D5, (uint8_t) ((pos >> 8) & 0xFF));
+    PostponeScheduleLock::lock();
+    outb(0x3D4, 0x0F);
+    outb(0x3D5, (uint8_t) (pos & 0xFF));
+    outb(0x3D4, 0x0E);
+    outb(0x3D5, (uint8_t) ((pos >> 8) & 0xFF));
+    PostponeScheduleLock::unlock();
 }
 
 Term &term() {

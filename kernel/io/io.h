@@ -54,6 +54,10 @@ inline void seteflags(uint32_t f) {
     asm volatile ( "pushl %0; popf;" : "=m"(f) );
 }
 
+inline bool isIntEnabled() {
+    return geteflags() & (1 << 9);
+}
+
 template <typename Type>
 struct CountingLock {
 public:

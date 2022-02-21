@@ -23,6 +23,7 @@ public:
     static void init(void (*entry)());
     static void create(void (*entry)(uint32_t), uint32_t cr3 = 0, uint32_t param = 0, uint32_t prio = 10);
     static void exit();
+    static void switchWrap(TaskControlBlock *task);
     static bool schedule();
     static bool lockSchedule();
 

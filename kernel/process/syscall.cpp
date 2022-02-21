@@ -5,7 +5,6 @@
 extern "C" void syscallHandler(PtRegs *regs) {
     switch (regs->eax) {
     case 0: // exit
-        Task::lock();
         Task::exit();
         break;
     case 2: // write

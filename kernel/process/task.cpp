@@ -6,11 +6,14 @@
 #include "../util/memory.h"
 #include "../util/new.h"
 
-#include "../util/debug.h"
+constexpr uint32_t DefaultTimeSlice = 50;
 
-TaskControlBlock *taskCurrent;
+TaskControlBlock *currentTask;
+static TaskControlBlock *idleTask;
 static TaskControlBlockList *ready;
 static uint32_t ntid;
+
+extern uint32_t remainTimeSlice;
 
 template<> uint32_t PostponeScheduleLock::count = 0;
 static uint32_t postpone;
@@ -21,7 +24,8 @@ void _PostponeScheduleLock::lock() {
 void _PostponeScheduleLock::unlock() {
     if (postpone) {
         postpone = 0;
-        Task::schedule();
+        // Task::schedule();
+        Task::lockSchedule();
     }
 }
 
@@ -35,7 +39,7 @@ void Task::unlock() {
 
 void Task::block() {
     lock();
-    taskCurrent->setRunningState(TaskControlBlock::BLOCKING);
+    currentTask->setRunningState(TaskControlBlock::BLOCKING);
     schedule();
     unlock();
 }
@@ -47,7 +51,6 @@ void Task::unblock(TaskControlBlock *task) {
     schedule();
     unlock();
 }
-
 
 static uint32_t prepare_stack(uint32_t entry, uint32_t param) {
     uint32_t *stack = (uint32_t *)((uint32_t)Frame::alloc() + (1 << 12));
@@ -81,14 +84,13 @@ static void idle() {
 
     while (true) {
         hlt();
-        Task::lockSchedule();
     }
 }
 
 void Task::init(void (*entry)()) {
     TaskControlBlock temp;
 
-    taskCurrent = &temp;
+    currentTask = &temp;
 
     ready = new TaskControlBlockList;
 
@@ -114,29 +116,42 @@ void Task::create(void (*entry)(uint32_t), uint32_t cr3, uint32_t param, uint32_
 }
 
 void Task::exit() {
+    lock();
     // although we're using its page as stack, freeing it doesn't make it invalid
-    if (taskCurrent->cr3 != flatPage->cr3()) {
-        Page(taskCurrent->cr3).free();
+    if (currentTask->cr3 != flatPage->cr3()) {
+        Page(currentTask->cr3).free();
     }
-    delete taskCurrent;
+    delete currentTask;
     TaskControlBlock *task = ready->popFront();
+    switchWrap(task);
+}
+
+void Task::switchWrap(TaskControlBlock *task) {
     task->setRunningState(TaskControlBlock::RUNNING);
+    if (task == idleTask) {
+        remainTimeSlice = 0;
+    } else {
+        remainTimeSlice = DefaultTimeSlice;
+    }
+    sysTss.esp0 = task->kesp;
     switchTask(task);
 }
 
 bool Task::schedule() {
     if (PostponeScheduleLock::locked()) {
         postpone = 1;
-    }
-    if (ready->head->priority < taskCurrent->priority && taskCurrent->getRunningState() == TaskControlBlock::RUNNING) {
         return false;
     }
-    taskCurrent->setRunningState(TaskControlBlock::READYTORUN);
-    ready->insertByPriority(taskCurrent);
+    if (ready->head->priority < currentTask->priority && currentTask->getRunningState() == TaskControlBlock::RUNNING) {
+        remainTimeSlice = DefaultTimeSlice;
+        return false;
+    }
+    if (currentTask->getRunningState() == TaskControlBlock::RUNNING) {
+        currentTask->setRunningState(TaskControlBlock::READYTORUN);
+        ready->insertByPriority(currentTask);
+    }
     TaskControlBlock *task = ready->popFront();
-    task->setRunningState(TaskControlBlock::RUNNING);
-    sysTss.esp0 = task->kesp;
-    switchTask(task);
+    switchWrap(task);
     return true;
 }
 
@@ -159,11 +174,11 @@ static uint32_t prepare_user_stack(uint32_t entry, uint32_t virAddr) {
 }
 
 void Task::enterRing3(void (*entry)()) {
-    Page page(reinterpret_cast<uint32_t *>(taskCurrent->cr3));
+    Page page(reinterpret_cast<uint32_t *>(currentTask->cr3));
     uint32_t e = reinterpret_cast<uint32_t>(entry);
     page.autoSet(e, e, Page::PRESENT | Page::NON_SUPERVISOR | Page::READWRITE);
     uint32_t stack = prepare_user_stack(reinterpret_cast<uint32_t>(entry), (1 << 30) - 0x1000);
-    taskCurrent->mapPage((1 << 30) - 0x1000, stack & ~0xFFF);
+    currentTask->mapPage((1 << 30) - 0x1000, stack & ~0xFFF);
     switchRing3((1 << 30) - 4 * 5);
 }
 
@@ -173,7 +188,7 @@ static void enterElf(uint32_t param) {
     switchRing3((1 << 30) - 20);
 
 /*
-    Page page(reinterpret_cast<uint32_t *>(taskCurrent->cr3));
+    Page page(reinterpret_cast<uint32_t *>(currentTask->cr3));
     uint32_t stack = prepare_user_stack(reinterpret_cast<uint32_t>(param));
     page.autoSet(stack, stack, Page::PRESENT | Page::NON_SUPERVISOR | Page::READWRITE);
     switchRing3(stack);
@@ -185,12 +200,12 @@ void Task::loadELF(ELF *elf, uint32_t prio) {
     uint32_t *phyPages = new uint32_t[npage];
     for (uint32_t i = 0; i < npage; i++) {
         phyPages[i] = reinterpret_cast<uint32_t>(Frame::allocUpper());
-        taskCurrent->storePage(phyPages[i]); // TODO: use TCB::pages instead
+        currentTask->storePage(phyPages[i]); // TODO: use TCB::pages instead
     }
     Page page;
     elf->preparePage(&page, phyPages);
     uint32_t stack = prepare_user_stack(elf->header->entry, (1 << 30) - 0x1000);
     page.autoSet(stack, (1 << 30) - 0x1000, Page::PRESENT | Page::READWRITE | Page::NON_SUPERVISOR);
-    taskCurrent->storePage(stack & ~0xFFF);
+    currentTask->storePage(stack & ~0xFFF);
     create(enterElf, page.cr3(), stack, prio);
 }

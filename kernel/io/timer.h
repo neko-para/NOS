@@ -9,6 +9,8 @@ class Timer {
     };
 public:
     static void set(uint32_t hz);
+
+    static uint64_t msSinceBoot;
 };
 
 __attribute__((interrupt)) void isrHandler32(InterruptFrame *frame);
