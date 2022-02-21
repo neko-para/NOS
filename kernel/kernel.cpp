@@ -34,9 +34,10 @@ void prepareMemory(BootInfo *info) {
     }
 }
 
+TaskControlBlock *mainTCB;
+
 void subTask(uint32_t ) {
     Task::unlock();
-
     MBR mbr;
     mbr.load(0);
     EXT2 *ext2 = new EXT2(0, mbr.entry[0].lba_start, mbr.entry[0].count);
@@ -46,13 +47,17 @@ void subTask(uint32_t ) {
     ELF *elf = new ELF(prog);
     Task::loadELF(elf);
 
+    Task::unblock(mainTCB);
+
     Task::exit();
 }
 
 void mainTask() {
     term() << "main task created" << endl;
-
+    mainTCB = taskCurrent;
     Task::create(subTask);
+    Task::block();
+    term() << "I'm back!" << endl;
 
     while (true) {
         hlt();

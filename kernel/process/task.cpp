@@ -1,71 +1,53 @@
 #include "task.h"
+#include "task_control_block.h"
 #include "../boot/page.h"
 #include "../boot/tss.h"
 #include "../io/term.h"
-#include "../io/io.h"
 #include "../util/memory.h"
 #include "../util/new.h"
-#include "../util/string.h"
 
 #include "../util/debug.h"
 
 TaskControlBlock *taskCurrent;
-TaskControlBlock *ready, *readyEnd;
-uint32_t ntid;
+static TaskControlBlockList *ready;
+static uint32_t ntid;
 
-TaskControlBlock::TaskControlBlock() {
-    pages = 0;
-    npage = 0;
-    npageCapa = 0;
+template<> uint32_t PostponeScheduleLock::count = 0;
+static uint32_t postpone;
+
+void _PostponeScheduleLock::lock() {
 }
 
-TaskControlBlock::~TaskControlBlock() {
-    if (pages) {
-        for (uint32_t i = 0; i < npage; i++) {
-            Frame::free(reinterpret_cast<void *>(pages[i]));
-        }
-        delete[] pages;
-    }
-}
-
-void TaskControlBlock::mapPage(uint32_t virAddr) {
-    mapPage(virAddr, reinterpret_cast<uint32_t >(Frame::allocUpper()));
-}
-
-void TaskControlBlock::mapPage(uint32_t virAddr, uint32_t phyAddr) {
-    Page page(cr3);
-    if (!page.isSet(virAddr)) {
-        storePage(phyAddr);
-        page.autoSet(phyAddr, virAddr, Page::PRESENT | Page::NON_SUPERVISOR | Page::READWRITE);
-    }
-}
-
-void TaskControlBlock::storePage(uint32_t page) {
-    page &= ~0xFFF;
-    if (npage < npageCapa) {
-        pages[npage++] = page;
-    } else if (npageCapa == 0) {
-        pages = new uint32_t[4];
-        pages[0] = page;
-        npage = 1;
-        npageCapa = 4;
-    } else {
-        npageCapa <<= 1;
-        uint32_t *p = new uint32_t[npageCapa];
-        memcpy(p, pages, 4 * npage);
-        delete[] pages;
-        pages = p;
-        pages[npage++] = page;
+void _PostponeScheduleLock::unlock() {
+    if (postpone) {
+        postpone = 0;
+        Task::schedule();
     }
 }
 
 void Task::lock() {
-    intLock();
+    InterruptLock::lock();
 }
 
 void Task::unlock() {
-    intUnlock();
+    InterruptLock::unlock();
 }
+
+void Task::block() {
+    lock();
+    taskCurrent->setRunningState(TaskControlBlock::BLOCKING);
+    schedule();
+    unlock();
+}
+
+void Task::unblock(TaskControlBlock *task) {
+    lock();
+    task->setRunningState(TaskControlBlock::READYTORUN);
+    ready->insertByPriority(task);
+    schedule();
+    unlock();
+}
+
 
 static uint32_t prepare_stack(uint32_t entry, uint32_t param) {
     uint32_t *stack = (uint32_t *)((uint32_t)Frame::alloc() + (1 << 12));
@@ -79,7 +61,7 @@ static uint32_t prepare_stack(uint32_t entry, uint32_t param) {
     return reinterpret_cast<uint32_t>(stack);
 }
 
-TaskControlBlock *prepare_task(uint32_t entry, uint32_t cr3, uint32_t param) {
+TaskControlBlock *prepare_task(uint32_t entry, uint32_t cr3, uint32_t param, uint32_t prio) {
     TaskControlBlock *task = new TaskControlBlock;
 
     task->esp = prepare_stack(entry, param); // 4K task stack
@@ -88,9 +70,19 @@ TaskControlBlock *prepare_task(uint32_t entry, uint32_t cr3, uint32_t param) {
     task->state = TaskControlBlock::READYTORUN;
     task->tid = ++ntid;
     task->kesp = (task->esp & ~0xFFF) + 0x100; // 1K interrupt stack (if enter usermode)
+    task->priority = prio;
 
     task->storePage(task->esp & ~0xFFF);
     return task;
+}
+
+static void idle() {
+    Task::unlock();
+
+    while (true) {
+        hlt();
+        Task::lockSchedule();
+    }
 }
 
 void Task::init(void (*entry)()) {
@@ -98,62 +90,54 @@ void Task::init(void (*entry)()) {
 
     taskCurrent = &temp;
 
-    TaskControlBlock *task = prepare_task(reinterpret_cast<uint32_t>(entry), flatPage->cr3(), 0);
+    ready = new TaskControlBlockList;
+
+    TaskControlBlock *task = prepare_task(reinterpret_cast<uint32_t>(entry), flatPage->cr3(), 0, 10);
     task->setRunningState(TaskControlBlock::RUNNING);
-
-    ready = readyEnd = 0;
-
     sysTss.esp0 = task->kesp;
+    
+    TaskControlBlock *idle = prepare_task(reinterpret_cast<uint32_t>(entry), flatPage->cr3(), 0, 0);
+    ready->pushBack(idle);
+
     switchTask(task);
 }
 
-void Task::create(void (*entry)(uint32_t), uint32_t cr3, uint32_t param) {
+void Task::create(void (*entry)(uint32_t), uint32_t cr3, uint32_t param, uint32_t prio) {
     if (cr3 == 0) {
         cr3 = flatPage->cr3();
     }
 
-    TaskControlBlock *task = prepare_task(reinterpret_cast<uint32_t>(entry), cr3, param);
+    TaskControlBlock *task = prepare_task(reinterpret_cast<uint32_t>(entry), cr3, param, prio);
 
-    if (readyEnd) {
-        readyEnd->next = task;
-    } else {
-        ready = task;
-    }
-    readyEnd = task;
+    ready->insertByPriority(task);
+    schedule();
 }
 
 void Task::exit() {
-    while (!ready) {
-        unlock();
-        hlt(); // Assume that interrupt could create some task
-        lock();
-    }
     // although we're using its page as stack, freeing it doesn't make it invalid
     if (taskCurrent->cr3 != flatPage->cr3()) {
         Page(taskCurrent->cr3).free();
     }
     delete taskCurrent;
-    TaskControlBlock *task = ready;
-    ready = ready->next;
+    TaskControlBlock *task = ready->popFront();
     task->setRunningState(TaskControlBlock::RUNNING);
     switchTask(task);
 }
 
 bool Task::schedule() {
-    if (ready) {
-        taskCurrent->setRunningState(TaskControlBlock::READYTORUN);
-        readyEnd->next = taskCurrent;
-        readyEnd = taskCurrent;
-        taskCurrent->next = 0;
-        TaskControlBlock *task = ready;
-        ready = ready->next;
-        task->setRunningState(TaskControlBlock::RUNNING);
-        sysTss.esp0 = task->kesp;
-        switchTask(task);
-        return true;
-    } else {
+    if (PostponeScheduleLock::locked()) {
+        postpone = 1;
+    }
+    if (ready->head->priority < taskCurrent->priority && taskCurrent->getRunningState() == TaskControlBlock::RUNNING) {
         return false;
     }
+    taskCurrent->setRunningState(TaskControlBlock::READYTORUN);
+    ready->insertByPriority(taskCurrent);
+    TaskControlBlock *task = ready->popFront();
+    task->setRunningState(TaskControlBlock::RUNNING);
+    sysTss.esp0 = task->kesp;
+    switchTask(task);
+    return true;
 }
 
 bool Task::lockSchedule() {
@@ -196,7 +180,7 @@ static void enterElf(uint32_t param) {
 */
 }
 
-void Task::loadELF(ELF *elf) {
+void Task::loadELF(ELF *elf, uint32_t prio) {
     uint32_t npage = elf->countPageNeeded();
     uint32_t *phyPages = new uint32_t[npage];
     for (uint32_t i = 0; i < npage; i++) {
@@ -208,5 +192,5 @@ void Task::loadELF(ELF *elf) {
     uint32_t stack = prepare_user_stack(elf->header->entry, (1 << 30) - 0x1000);
     page.autoSet(stack, (1 << 30) - 0x1000, Page::PRESENT | Page::READWRITE | Page::NON_SUPERVISOR);
     taskCurrent->storePage(stack & ~0xFFF);
-    create(enterElf, page.cr3(), stack);
+    create(enterElf, page.cr3(), stack, prio);
 }

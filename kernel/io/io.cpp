@@ -1,14 +1,11 @@
 #include "io.h"
 
-static uint32_t lockCount = 0;
+template<> uint32_t InterruptLock::count = 0;
 
-void intLock() {
+void _InterruptLock::lock() {
     cli();
-    lockCount++;
 }
 
-void intUnlock() {
-    if (--lockCount == 0) {
-        sti();
-    }
+void _InterruptLock::unlock() {
+    sti();
 }

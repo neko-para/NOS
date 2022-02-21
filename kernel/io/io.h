@@ -54,5 +54,30 @@ inline void seteflags(uint32_t f) {
     asm volatile ( "pushl %0; popf;" : "=m"(f) );
 }
 
-void intLock();
-void intUnlock();
+template <typename Type>
+struct CountingLock {
+public:
+    static void lock() {
+        if (++count == 1) {
+            Type::lock();
+        }
+    }
+    static void unlock() {
+        if (--count == 0) {
+            Type::unlock();
+        }
+    }
+    static bool locked() {
+        return count > 0;
+    }
+
+private:
+    static uint32_t count;
+};
+
+struct _InterruptLock {
+    static void lock();
+    static void unlock();
+};
+
+using InterruptLock = CountingLock<_InterruptLock>;
