@@ -69,6 +69,10 @@ static void initPIC() {
     outb(PIC2_ICW4, 0x01);
 }
 
+__attribute__((interrupt)) void isrHandler46(InterruptFrame *frame) {
+    Idt::end(14);
+}
+
 void Idt::init() {
     initPIC();
     idtr.base = reinterpret_cast<uint32_t>(idt);
@@ -117,6 +121,8 @@ void Idt::init() {
     __ISR_SET(32);
     __ISR_SET(33);
     __ISR_SET(44);
+
+    __ISR_SET(46);
 
     __INT_U(128, isrHandler128);
 

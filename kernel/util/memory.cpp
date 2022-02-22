@@ -129,6 +129,7 @@ static uint32_t find_alloc(uint32_t size) {
     }
     uint32_t ret = find->addr;
     find->addr += size;
+    find->size -= size;
     return ret;
 }
 
@@ -146,9 +147,20 @@ void Memory::add(uint32_t start, uint32_t size) {
     insert(start, size);
 }
 
+void dump() {
+    MemNode *p = pUse;
+    while (p) {
+        debug() << p->addr << " ~ " << p->addr + p->size << " , ";
+        p = p->next;
+    }
+    debug() << endl;
+}
+
 void *Memory::alloc(uint32_t size) {
     uint32_t rsize = (size + 8 + 3) & (~3);
     uint32_t addr = find_alloc(rsize);
+    // debug() << hex << "alloc " << addr << '~' << addr + rsize << endl;
+    // dump();
     uint32_t *ptr = (uint32_t *)addr;
     *ptr = rsize;
     ptr[rsize / 4 - 1] = TAIL_MAGIC ^ rsize;
@@ -164,6 +176,8 @@ void Memory::free(void *ptr) {
         return;
     }
     insert((uint32_t)p, size);
+    // debug() << hex << "free  " << (uint32_t)p << '~' << (uint32_t)p + size << endl;
+    // dump();
 }
 
 static uint8_t *pageBase;

@@ -35,51 +35,25 @@ void prepareMemory(BootInfo *info) {
     }
 }
 
-void request(uint32_t init) {
+void sub(uint32_t) {
     Task::unlock();
-
-    Task::sleep(init);
-
-    while (true) {
-        term() << currentTask->tid;
-        Task::sleep(1000);
-    }
+    
+    MBR mbr;
+    mbr.load(0);
+    EXT2 *ext2 = new EXT2(0, mbr.entry[0].lba_start, mbr.entry[0].count);
+    auto file = ext2->root()->get("bin")->get("test");
+    void *prog = file->readContent();
+    delete file;
+    ELF *elf = new ELF(prog);
+    Task::loadELF(elf);
 
     Task::exit();
-}
-
-void rotate(uint32_t ) {
-    Task::unlock();
-    char buf[] = "< ";
-    int i = 0;
-
-    while (true) {
-        term() << buf[i] << '\b';
-        i ^= 1;
-        Task::sleep(500);
-    }
-}
-
-void handleInput(uint32_t ) {
-    Task::unlock();
-
-    while (true) {
-        Keyboard::available->lock();
-        KeyboardMessage msg;
-        if (Keyboard::pop(msg)) {
-            if (!(msg.flag & Keyboard::RELEASE) && msg.ch) {
-                term() << msg.ch;
-            }
-        }
-    }
 }
 
 void mainTask() {
     Task::inited = true;
 
-    term().disable_cursor();
-    Task::create(rotate);
-    Task::create(handleInput, 0, 0, 11);
+    Task::create(sub);
 
     Task::exit();
 }

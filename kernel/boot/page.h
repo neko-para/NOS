@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "../process/task_control_block.h"
 
 class Page {
 public:
@@ -23,6 +24,9 @@ public:
 
     Page(uint32_t *preset = 0);
     Page(uint32_t cr3) : Page(reinterpret_cast<uint32_t *>(cr3)) {}
+
+    uint32_t clone(TaskControlBlock *target);
+    void checkPresent();
 
     void set(uint32_t index, uint32_t *pageEntry, uint8_t attrib);
     void load();

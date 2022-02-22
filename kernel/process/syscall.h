@@ -22,4 +22,4 @@ struct PtRegs {
 };
 
 extern "C" __attribute__((interrupt)) void isrHandler128(InterruptFrame *frame);
-extern "C" void syscallHandler(PtRegs *regs);
+extern "C" uint32_t syscallHandler(PtRegs *regs);

@@ -81,7 +81,7 @@ TaskControlBlock *prepare_task(uint32_t entry, uint32_t cr3, uint32_t param, uin
     task->next = 0;
     task->state = TaskControlBlock::READYTORUN;
     task->tid = ++ntid;
-    task->kesp = (task->esp & ~0xFFF) + 0x100; // 1K interrupt stack (if enter usermode)
+    task->kesp = (task->esp & ~0xFFF) + 0x800; // 2K interrupt stack (if enter usermode)
     task->priority = prio;
 
     task->storePage(task->esp & ~0xFFF);
@@ -107,7 +107,7 @@ void Task::init(void (*entry)()) {
     TaskControlBlock *task = prepare_task(reinterpret_cast<uint32_t>(entry), flatPage->cr3(), 0, 10);
     task->setRunningState(TaskControlBlock::RUNNING);
     sysTss.esp0 = task->kesp;
-    
+
     idleTask = prepare_task(reinterpret_cast<uint32_t>(idle), flatPage->cr3(), 0, 0);
     ready->pushBack(idleTask);
 
@@ -116,7 +116,7 @@ void Task::init(void (*entry)()) {
     switchTask(task);
 }
 
-void Task::create(void (*entry)(uint32_t), uint32_t cr3, uint32_t param, uint32_t prio) {
+int32_t Task::create(void (*entry)(uint32_t), uint32_t cr3, uint32_t param, uint32_t prio) {
     if (cr3 == 0) {
         cr3 = flatPage->cr3();
     }
@@ -125,9 +125,23 @@ void Task::create(void (*entry)(uint32_t), uint32_t cr3, uint32_t param, uint32_
 
     ready->insertByPriority(task);
     schedule();
+    return task->tid;
 }
 
-void Task::exit() {
+void backToFork(uint32_t sp) {
+    Task::unlock();
+    backRing3(sp, 0);
+}
+
+int32_t Task::fork(uint32_t sp) {
+    Page page(currentTask->cr3);
+    TaskControlBlock *task = new TaskControlBlock;
+    page.checkPresent();
+    uint32_t cr3 = page.clone(task);
+    return create(backToFork, cr3, sp, currentTask->priority);
+}
+
+void Task::exit(int32_t ret) {
     lock();
     // although we're using its page as stack, freeing it doesn't make it invalid
     if (currentTask->cr3 != flatPage->cr3()) {
@@ -209,7 +223,7 @@ static void enterElf(uint32_t param) {
 */
 }
 
-void Task::loadELF(ELF *elf, uint32_t prio) {
+int32_t Task::loadELF(ELF *elf, uint32_t prio) {
     uint32_t npage = elf->countPageNeeded();
     uint32_t *phyPages = new uint32_t[npage];
     for (uint32_t i = 0; i < npage; i++) {
@@ -221,5 +235,5 @@ void Task::loadELF(ELF *elf, uint32_t prio) {
     uint32_t stack = prepare_user_stack(elf->header->entry, (1 << 30) - 0x1000);
     page.autoSet(stack, (1 << 30) - 0x1000, Page::PRESENT | Page::READWRITE | Page::NON_SUPERVISOR);
     currentTask->storePage(stack & ~0xFFF);
-    create(enterElf, page.cr3(), stack, prio);
+    return create(enterElf, page.cr3(), stack, prio);
 }

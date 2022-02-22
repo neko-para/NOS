@@ -2,12 +2,19 @@
 
 extern "C" {
 
-void nos_exit() {
-    asm volatile ( "movl $0, %eax; int $0x80;" );
+void exit(int32_t ret) {
+    asm volatile ( "movl %0, %%ebx; movl $1, %%eax; int $0x80;" : "=m"(ret) );
 }
 
-void nos_print(const char *str) {
-    asm volatile ( "movl %0, %%esi; movl $2, %%eax; int $0x80;" : "=m"(str) );
+int32_t fork() {
+    int32_t res;
+    asm volatile ( "movl $2, %%eax; int $0x80; movl %%eax, %0; " : "=m"(res) );
+    return res;
+}
+
+
+void write(int32_t fd, void *buf, uint32_t len) {
+    asm volatile ( "movl %0, %%ebx; movl %1, %%ecx; movl $4, %%eax; int $0x80;" : "=m"(buf), "=m"(len) );
 }
 
 }

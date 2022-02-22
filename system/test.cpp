@@ -4,12 +4,22 @@ void strcpy(char *dst, const char *src) {
     while (*src) {
         *dst++ = *src++;
     }
+    *dst = 0;
+}
+uint32_t strlen(const char *src) {
+    uint32_t l = 0;
+    while (*src++) {
+        l++;
+    }
+    return l;
 }
 
 extern "C" void _start() {
     char *test = reinterpret_cast<char *>(1 << 28);
-    const char *str = "Hello world from outer elf program!\n";
+    int32_t p = fork();
+    const char *str = "PID: \n";
     strcpy(test, str);
-    nos_print(test);
-    nos_exit();
+    test[4] = p + '0';
+    write(1, test, strlen(test));
+    exit(0);
 }

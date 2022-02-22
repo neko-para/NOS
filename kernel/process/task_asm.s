@@ -41,4 +41,24 @@ switchRing3:
 
     movl 4(%esp), %eax
     movl %eax, %esp
+    xorl %eax, %eax
+    iret
+
+.global backRing3
+backRing3:
+    movl 8(%esp), %ecx
+    movl 4(%esp), %eax
+    movl %eax, %esp
+    movl %ecx, %eax
+    popl %ebx
+    popl %ecx
+    popl %edx
+    popl %esi
+    popl %edi
+    popl %ebp
+    popl %ds
+    popl %es
+    popl %fs
+    popl %gs
+    addl $4, %esp
     iret

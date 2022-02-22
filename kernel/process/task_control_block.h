@@ -18,7 +18,7 @@ struct TaskControlBlock {
     uint32_t cr3;
     TaskControlBlock *next;
     uint32_t state;
-    uint32_t tid;
+    int32_t tid;
     uint32_t kesp;
     uint32_t priority;
     uint32_t param; // for sleeing
@@ -55,6 +55,7 @@ extern TaskControlBlock *currentTask;
 
 extern "C" void switchTask(TaskControlBlock *target);
 extern "C" void switchRing3(uint32_t targetSp);
+extern "C" void backRing3(uint32_t targetSp, uint32_t eax);
 
 struct TaskControlBlockList {
     TaskControlBlock *head = 0, *tail = 0;
