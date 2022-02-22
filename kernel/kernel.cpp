@@ -35,31 +35,51 @@ void prepareMemory(BootInfo *info) {
     }
 }
 
-Semaphore *term_semaphore;
-
 void request(uint32_t init) {
     Task::unlock();
 
     Task::sleep(init);
 
     while (true) {
-        term_semaphore->lock();
         term() << currentTask->tid;
-        term_semaphore->unlock();
         Task::sleep(1000);
     }
 
     Task::exit();
 }
 
+void rotate(uint32_t ) {
+    Task::unlock();
+    char buf[] = "< ";
+    int i = 0;
+
+    while (true) {
+        term() << buf[i] << '\b';
+        i ^= 1;
+        Task::sleep(500);
+    }
+}
+
+void handleInput(uint32_t ) {
+    Task::unlock();
+
+    while (true) {
+        Keyboard::available->lock();
+        KeyboardMessage msg;
+        if (Keyboard::pop(msg)) {
+            if (!(msg.flag & Keyboard::RELEASE) && msg.ch) {
+                term() << msg.ch;
+            }
+        }
+    }
+}
+
 void mainTask() {
     Task::inited = true;
-    term() << "main task created" << endl;
 
-    term_semaphore = new Semaphore(1);
-
-    Task::create(request, 0, 500, 9);
-    Task::create(request, 0, 1000, 9);
+    term().disable_cursor();
+    Task::create(rotate);
+    Task::create(handleInput, 0, 0, 11);
 
     Task::exit();
 }

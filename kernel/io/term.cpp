@@ -35,6 +35,13 @@ void Term::put(char ch) {
     } else if (ch == '\b') {
         column = column ? column - 1 : 0;
         goto _end;
+    } else if (ch == '\t') {
+        column = (column & ~3) + 4;
+        if (column >= width) {
+            goto _next_row;
+        } else {
+            goto _end;
+        }
     }
     buffer[row * width + column] = term_entry(attrib, ch);
     if (++column == width) {

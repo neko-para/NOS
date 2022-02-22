@@ -1,7 +1,6 @@
 #include "semaphore.h"
 #include "task.h"
 #include "../util/new.h"
-#include "../util/debug.h"
 
 Semaphore::Semaphore(uint32_t maxi) {
     maxCount = maxi;
@@ -17,7 +16,6 @@ void Semaphore::lock() {
     PostponeScheduleLock::lock();
     if (curCount == maxCount) {
         list->pushBack(currentTask);
-        term() << '+';
         Task::block();
     } else {
         curCount++;
@@ -30,11 +28,7 @@ void Semaphore::unlock() {
     if (list->isEmpty()) {
         curCount--;
     } else {
-        term() << '-';
         Task::unblock(list->popFront());
     }
     PostponeScheduleLock::unlock();
-    if (!isIntEnabled()) {
-        FATAL;
-    }
 }
