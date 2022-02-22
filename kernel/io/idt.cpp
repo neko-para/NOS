@@ -67,9 +67,6 @@ static void initPIC() {
     outb(PIC2_ICW2, 0x28); // remap 8 ~ 15 to 0x28 ~ 0x2f
     outb(PIC2_ICW3, 2);
     outb(PIC2_ICW4, 0x01);
-
-    outb(PIC1_IMR, 0xff);
-    outb(PIC2_IMR, 0xff);
 }
 
 void Idt::init() {

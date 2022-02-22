@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "VSCODE_CPPTOOL"
+            ],
+            "compilerArgs": [
+                "-ffreestanding"
+            ],
+            "compilerPath": "/home/nekosu/osdev/inst/bin/i686-elf-g++",
+            "cStandard": "c99",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "gcc-x86"
+        }
+    ],
+    "version": 4
+}

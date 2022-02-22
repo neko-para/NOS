@@ -1,5 +1,4 @@
 .xmake
-.vscode
 build
 
 disk/boot/kernel.bin
