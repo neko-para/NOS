@@ -3,7 +3,6 @@
 #include "term.h"
 #include "timer.h"
 #include "../process/task.h"
-#include "../process/semaphore.h"
 
 constexpr uint32_t timeBetweenTicks = 1;
 
@@ -17,19 +16,32 @@ void Timer::set(uint32_t hz) {
     outb(0x40, h >> 8);
 }
 
-extern Semaphore *term_semaphore;
+extern TaskControlBlockList *sleeping;
 uint32_t remainTimeSlice;
+
+bool checkSleeing(TaskControlBlock *task) {
+    if (task->param <= Timer::msSinceBoot) {
+        task->param = 0;
+        Task::unblock(task);
+        return true;
+    } else {
+        return false;
+    }
+}
 
 __attribute__((interrupt)) void isrHandler32(InterruptFrame *frame) {
     Idt::end(0);
-    PostponeScheduleLock::lock();
     Timer::msSinceBoot += timeBetweenTicks;
-    if (remainTimeSlice != 0) {
-        if (remainTimeSlice <= timeBetweenTicks) {
-            Task::schedule();
-        } else {
-            remainTimeSlice -= timeBetweenTicks;
+    if (Task::inited) {
+        PostponeScheduleLock::lock();
+        sleeping->filter(checkSleeing);
+        if (remainTimeSlice != 0) {
+            if (remainTimeSlice <= timeBetweenTicks) {
+                Task::schedule();
+            } else {
+                remainTimeSlice -= timeBetweenTicks;
+            }
         }
+        PostponeScheduleLock::unlock();
     }
-    PostponeScheduleLock::unlock();
 }

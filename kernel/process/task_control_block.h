@@ -7,7 +7,11 @@ struct TaskControlBlock {
         RUNNING = 0,
         READYTORUN = 1,
         BLOCKING = 2,
-        RS_MASK = 3
+        RS_MASK = 3,
+
+        WAITING = 4,
+        SLEEPING = 8,
+        BR_MASK = 12
     };
 
     uint32_t esp;
@@ -17,6 +21,7 @@ struct TaskControlBlock {
     uint32_t tid;
     uint32_t kesp;
     uint32_t priority;
+    uint32_t param; // for sleeing
     uint32_t *pages;
     uint32_t npage, npageCapa;
 
@@ -31,6 +36,14 @@ struct TaskControlBlock {
 
     uint32_t getRunningState() const {
         return state & RS_MASK;
+    }
+
+    void setBlocking(uint32_t reason) {
+        state = (state & ~(RS_MASK | BR_MASK)) | BLOCKING | reason;
+    }
+
+    uint32_t getBlockingReason() const {
+        return state & BR_MASK;
     }
 
     void mapPage(uint32_t virAddr);
@@ -53,4 +66,5 @@ struct TaskControlBlockList {
     void pushBack(TaskControlBlock *task);
     TaskControlBlock *popFront();
     void insertByPriority(TaskControlBlock *task); // upper to lower
+    void filter(bool (*func)(TaskControlBlock *task)); // remove all true
 };

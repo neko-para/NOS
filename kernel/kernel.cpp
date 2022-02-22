@@ -37,25 +37,29 @@ void prepareMemory(BootInfo *info) {
 
 Semaphore *term_semaphore;
 
-void request(uint32_t ) {
+void request(uint32_t init) {
     Task::unlock();
+
+    Task::sleep(init);
 
     while (true) {
         term_semaphore->lock();
         term() << currentTask->tid;
         term_semaphore->unlock();
+        Task::sleep(1000);
     }
 
     Task::exit();
 }
 
 void mainTask() {
+    Task::inited = true;
     term() << "main task created" << endl;
 
     term_semaphore = new Semaphore(1);
 
-    Task::create(request, 0, 0, 9);
-    Task::create(request, 0, 0, 9);
+    Task::create(request, 0, 500, 9);
+    Task::create(request, 0, 1000, 9);
 
     Task::exit();
 }

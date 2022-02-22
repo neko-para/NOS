@@ -52,8 +52,8 @@ void TaskControlBlock::storePage(uint32_t page) {
 }
 
 void TaskControlBlockList::pushBack(TaskControlBlock *task) {
+    task->next = 0;
     if (head) {
-        task->next = 0;
         tail->next = task;
         tail = task;
     } else {
@@ -88,4 +88,37 @@ void TaskControlBlockList::insertByPriority(TaskControlBlock *task) {
     task->next = 0;
     tail = task;
     *ptr = task;
+}
+
+void TaskControlBlockList::filter(bool (*func)(TaskControlBlock *task)) {
+    if (isEmpty()) {
+        return;
+    }
+    if (head == tail) {
+        if (func(head)) {
+            head = tail = 0;
+        }
+        return;
+    }
+    TaskControlBlock *newhead = 0, *newtail = 0;
+    TaskControlBlock *ptr = head;
+    while (ptr) {
+        TaskControlBlock *next = ptr->next;
+        if (func(ptr)) {
+            ptr = next;
+        } else {
+            if (newhead) {
+                newtail->next = ptr;
+            } else {
+                newhead = ptr;
+            }
+            newtail = ptr;
+            ptr = next;
+        }
+    }
+    head = newhead;
+    tail = newtail;
+    if (tail) {
+        tail->next = 0;
+    }
 }

@@ -17,8 +17,9 @@ public:
     static void lock();
     static void unlock();
 
-    static void block();
+    static void block(uint32_t reason = TaskControlBlock::WAITING);
     static void unblock(TaskControlBlock *task);
+    static void sleep(uint32_t ms);
 
     static void init(void (*entry)());
     static void create(void (*entry)(uint32_t), uint32_t cr3 = 0, uint32_t param = 0, uint32_t prio = 10);
@@ -29,4 +30,6 @@ public:
 
     static void enterRing3(void (*entry)());
     static void loadELF(ELF *elf, uint32_t prio = 10);
+
+    static bool inited;
 };

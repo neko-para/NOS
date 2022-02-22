@@ -3,12 +3,14 @@
 #include "../boot/page.h"
 #include "../boot/tss.h"
 #include "../io/term.h"
+#include "../io/timer.h"
 #include "../util/memory.h"
 #include "../util/new.h"
 
 constexpr uint32_t DefaultTimeSlice = 50;
 
 TaskControlBlock *currentTask;
+TaskControlBlockList *sleeping;
 static TaskControlBlock *idleTask;
 static TaskControlBlockList *ready;
 static uint32_t ntid;
@@ -29,6 +31,8 @@ void _PostponeScheduleLock::unlock() {
     }
 }
 
+bool Task::inited = false;
+
 void Task::lock() {
     InterruptLock::lock();
 }
@@ -37,9 +41,9 @@ void Task::unlock() {
     InterruptLock::unlock();
 }
 
-void Task::block() {
+void Task::block(uint32_t reason) {
     lock();
-    currentTask->setRunningState(TaskControlBlock::BLOCKING);
+    currentTask->setBlocking(reason);
     schedule();
     unlock();
 }
@@ -50,6 +54,11 @@ void Task::unblock(TaskControlBlock *task) {
     ready->insertByPriority(task);
     schedule();
     unlock();
+}
+
+void Task::sleep(uint32_t ms) {
+    currentTask->param = ms + Timer::msSinceBoot;
+    block(TaskControlBlock::SLEEPING);
 }
 
 static uint32_t prepare_stack(uint32_t entry, uint32_t param) {
@@ -93,13 +102,16 @@ void Task::init(void (*entry)()) {
     currentTask = &temp;
 
     ready = new TaskControlBlockList;
+    sleeping = new TaskControlBlockList;
 
     TaskControlBlock *task = prepare_task(reinterpret_cast<uint32_t>(entry), flatPage->cr3(), 0, 10);
     task->setRunningState(TaskControlBlock::RUNNING);
     sysTss.esp0 = task->kesp;
     
-    TaskControlBlock *idle = prepare_task(reinterpret_cast<uint32_t>(entry), flatPage->cr3(), 0, 0);
-    ready->pushBack(idle);
+    idleTask = prepare_task(reinterpret_cast<uint32_t>(idle), flatPage->cr3(), 0, 0);
+    ready->pushBack(idleTask);
+
+    sleeping = new TaskControlBlockList; // incase PIT
 
     switchTask(task);
 }
@@ -142,13 +154,15 @@ bool Task::schedule() {
         postpone = 1;
         return false;
     }
-    if (ready->head->priority < currentTask->priority && currentTask->getRunningState() == TaskControlBlock::RUNNING) {
+    if (currentTask != idleTask && ready->head->priority < currentTask->priority && currentTask->getRunningState() == TaskControlBlock::RUNNING) {
         remainTimeSlice = DefaultTimeSlice;
         return false;
     }
     if (currentTask->getRunningState() == TaskControlBlock::RUNNING) {
         currentTask->setRunningState(TaskControlBlock::READYTORUN);
         ready->insertByPriority(currentTask);
+    } else if (currentTask->getRunningState() == TaskControlBlock::BLOCKING && currentTask->getBlockingReason() == TaskControlBlock::SLEEPING) {
+        sleeping->pushBack(currentTask);
     }
     TaskControlBlock *task = ready->popFront();
     switchWrap(task);

@@ -2,7 +2,6 @@
 
 #include "isr.h"
 
-
 class Timer {
     enum {
         DEFAULT_HZ = 1193182
