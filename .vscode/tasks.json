@@ -5,8 +5,9 @@
             "label": "Launch QEMU",
             "type": "shell",
             "linux": {
-                "command": "qemu-system-i386 -S -gdb tcp::1234 -m 1G -drive format=raw,file=disk.img -serial file:serial.log &"
-            }
+                "command": "qemu-system-i386 -S -gdb tcp::1234 -m 1G -drive format=raw,file=disk.img -serial file:serial.log"
+            },
+            "isBackground": true
         }
     ]
 }

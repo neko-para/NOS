@@ -2,8 +2,8 @@
 
 #include <stdint.h>
 #include "elf.h"
-#include "../io/io.h"
 #include "task_control_block.h"
+#include "../io/io.h"
 
 struct _PostponeScheduleLock {
     static void lock();
@@ -34,3 +34,5 @@ public:
 
     static bool inited;
 };
+
+extern TaskControlBlock *tasks[65536];

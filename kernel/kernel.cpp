@@ -3,6 +3,8 @@
 #include "boot/page.h"
 #include "filesystem/mbr.h"
 #include "filesystem/ext2.h"
+#include "filesystem/deviceFS.h"
+#include "filesystem/procFS.h"
 #include "io/idt.h"
 #include "io/io.h"
 #include "io/keyboard.h"
@@ -14,6 +16,7 @@
 #include "process/semaphore.h"
 #include "util/debug.h"
 #include "util/memory.h"
+#include "vfs/vfs.h"
 
 void prepareMemory(BootInfo *info) {
     for (uint32_t i = 0; i < info->mmap_length / sizeof(MMapEntry); i++) {
@@ -35,25 +38,31 @@ void prepareMemory(BootInfo *info) {
     }
 }
 
-void sub(uint32_t) {
-    Task::unlock();
-    
-    MBR mbr;
-    mbr.load(0);
-    EXT2 *ext2 = new EXT2(0, mbr.entry[0].lba_start, mbr.entry[0].count);
-    auto file = ext2->root()->get("bin")->get("test");
-    void *prog = file->readContent();
-    delete file;
-    ELF *elf = new ELF(prog);
-    Task::loadELF(elf);
-
-    Task::exit();
-}
-
 void mainTask() {
     Task::inited = true;
 
-    Task::create(sub);
+    VFS::init();
+
+    MBR mbr;
+    mbr.load(0);
+    EXT2 *ext2 = new EXT2(0, mbr.entry[0].lba_start, mbr.entry[0].count);
+    VFS::mount("/", ext2);
+    VFS::mount("/dev", new DeviceFS());
+    VFS::mount("/proc", new ProcFS());
+
+    currentTask->file->pushBack(VFS::lookup("/dev/tty").open("/dev/tty", 0)); // stdin
+    currentTask->file->pushBack(VFS::lookup("/dev/tty").open("/dev/tty", 0)); // stdout
+
+    auto f = VFS::lookup("/bin/test");
+    Stat st;
+    f.getRegularFile()->stat(&st);
+    void *prog = Memory::alloc(st.size);
+    auto fd = f.open("/bin/test", 0);
+    fd->read(prog, st.size);
+    fd->close();
+    delete fd;
+    ELF *elf = new ELF(prog);
+    Task::loadELF(elf);
 
     Task::exit();
 }

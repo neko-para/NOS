@@ -11,6 +11,7 @@ constexpr uint32_t DefaultTimeSlice = 50;
 
 TaskControlBlock *currentTask;
 TaskControlBlockList *sleeping;
+TaskControlBlock *tasks[65536];
 static TaskControlBlock *idleTask;
 static TaskControlBlockList *ready;
 static uint32_t ntid;
@@ -85,6 +86,7 @@ TaskControlBlock *prepare_task(uint32_t entry, uint32_t cr3, uint32_t param, uin
     task->priority = prio;
 
     task->storePage(task->esp & ~0xFFF);
+    tasks[task->tid] = task;
     return task;
 }
 
@@ -106,6 +108,7 @@ void Task::init(void (*entry)()) {
 
     TaskControlBlock *task = prepare_task(reinterpret_cast<uint32_t>(entry), flatPage->cr3(), 0, 10);
     task->setRunningState(TaskControlBlock::RUNNING);
+    task->file = new Array<VFS::FileDescriptor *>();
     sysTss.esp0 = task->kesp;
 
     idleTask = prepare_task(reinterpret_cast<uint32_t>(idle), flatPage->cr3(), 0, 0);
@@ -122,6 +125,10 @@ int32_t Task::create(void (*entry)(uint32_t), uint32_t cr3, uint32_t param, uint
     }
 
     TaskControlBlock *task = prepare_task(reinterpret_cast<uint32_t>(entry), cr3, param, prio);
+    task->file = new Array<VFS::FileDescriptor *>(*currentTask->file);
+    for (uint32_t i = 0; i < task->file->size(); i++) {
+        (*task->file)[i] = (*task->file)[i]->clone();
+    }
 
     ready->insertByPriority(task);
     schedule();
@@ -135,10 +142,17 @@ void backToFork(uint32_t sp) {
 
 int32_t Task::fork(uint32_t sp) {
     Page page(currentTask->cr3);
-    TaskControlBlock *task = new TaskControlBlock;
-    page.checkPresent();
+    TaskControlBlock *task = prepare_task(reinterpret_cast<uint32_t>(backToFork), 0, sp, currentTask->priority);
     uint32_t cr3 = page.clone(task);
-    return create(backToFork, cr3, sp, currentTask->priority);
+    task->cr3 = cr3;
+    task->file = new Array<VFS::FileDescriptor *>(*currentTask->file);
+    for (uint32_t i = 0; i < task->file->size(); i++) {
+        (*task->file)[i] = (*task->file)[i]->clone();
+    }
+
+    ready->insertByPriority(task);
+    schedule();
+    return task->tid;
 }
 
 void Task::exit(int32_t ret) {
@@ -147,6 +161,7 @@ void Task::exit(int32_t ret) {
     if (currentTask->cr3 != flatPage->cr3()) {
         Page(currentTask->cr3).free();
     }
+    tasks[currentTask->tid] = 0;
     delete currentTask;
     TaskControlBlock *task = ready->popFront();
     switchWrap(task);

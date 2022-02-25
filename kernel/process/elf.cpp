@@ -6,6 +6,9 @@
 
 ELF::ELF(void *content) : content(content) {
     header = at<Header>(0);
+    if (header->magic != 0x464c457F) {
+        term() << "ELF MAGIC NOT MATCH!" << endl;
+    }
 }
 
 ELF::~ELF() {

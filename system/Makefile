@@ -10,10 +10,13 @@ all: $(LIBRARY) $(TARGET)
 install: all
 	cp $(TARGET) ../disk/bin
 
-%: %.o
+test: test.o $(LIBRARY)
 	$(LD) -o $@ $< -L . -lnos
 
-%.o: %.cpp syscall.h
+test.o: test.cpp ../kernel/export/syscall.h
+	$(CXX) -c -o $@ $< -ffreestanding
+
+syscall.o: ../kernel/export/syscall.cpp ../kernel/export/syscall.h
 	$(CXX) -c -o $@ $< -ffreestanding
 
 libnos.a: syscall.o

@@ -3,6 +3,7 @@
 #include "../util/memory.h"
 #include "../util/new.h"
 #include "../util/string.h"
+#include "../io/term.h"
 
 void EXT2::SuperBlock::locateInode(uint32_t i, uint32_t &group, uint32_t &block, uint32_t &inner) const {
     group = (i - 1) / inodes_per_group;
@@ -11,48 +12,68 @@ void EXT2::SuperBlock::locateInode(uint32_t i, uint32_t &group, uint32_t &block,
     inner = (index * inode_size) % 1024;
 }
 
-
-EXT2::Iterator::Iterator(EXT2 *ext2, uint32_t id) : ext2(ext2) {
-    this->ID = id;
-    this->inode = ext2->readInode(id);
-}
-
-EXT2::Iterator::~Iterator() {
-    delete inode;
-}
-
-void EXT2::Iterator::enumDirectory(void (*func)(DirectoryEntry *entry)) {
-    uint32_t sz = 0;
-    void *content = ext2->readInodeContent(inode);
-    EXT2::DirectoryEntry *entry = reinterpret_cast<EXT2::DirectoryEntry *>(content);
-    while (sz < inode->size_lo) {
-        func(entry);
-        sz += entry->size;
-        entry = entry->next();
+int32_t EXT2::VFSFileDescriptor::read(void *buf, uint32_t size) {
+    auto *f = reinterpret_cast<VFSFile *>(file.getRegularFile());
+    if (seekg == f->inode->size_lo) {
+        return 0;
     }
+    if (seekg + size >= f->inode->size_lo) {
+        size = f->inode->size_lo - seekg;
+    }
+    uint8_t *content = reinterpret_cast<uint8_t *>(f->fs->readInodeContent(f->inode));
+    memcpy(buf, content + seekg, size);
     Memory::free(content);
+    return size;
 }
 
-EXT2::Iterator *EXT2::Iterator::get(const char *path) {
+EXT2::VFSFile::VFSFile(EXT2 *fs, uint32_t i, EXT2::Inode *n) : fs(fs), id(i), inode(n) {
+    if (!inode) {
+        inode = fs->readInode(i);
+    }
+}
+
+EXT2::VFSFileDescriptor *EXT2::VFSFile::open(int32_t flag) {
+    return new VFSFileDescriptor();
+}
+
+int32_t EXT2::VFSFile::stat(Stat *buf) {
+    buf->size = inode->size_lo;
+}
+
+EXT2::VFSDirectory::VFSDirectory(EXT2 *fs, uint32_t i, EXT2::Inode *n) : fs(fs), id(i), inode(n) {
+    if (!inode) {
+        inode = fs->readInode(i);
+    }
     uint32_t sz = 0;
-    uint32_t sl = strlen(path);
-    void *content = ext2->readInodeContent(inode);
+    void *content = fs->readInodeContent(inode);
     EXT2::DirectoryEntry *entry = reinterpret_cast<EXT2::DirectoryEntry *>(content);
     while (sz < inode->size_lo) {
-        if (sl == entry->length_lo) {
-            if (!memcmp(path, entry->name, sl)) {
-                if (entry->inode != ID) { // incase symlink to itself
-                    auto it = new Iterator(ext2, entry->inode);
-                    Memory::free(content);
-                    return it;
-                }
-            }
+        char *buf = new char[entry->length_lo + 1];
+        memcpy(buf, entry->name, entry->length_lo);
+        buf[entry->length_lo] = 0;
+        if (buf[0] == '.' && ((buf[1] == '.' && buf[2] == 0) || buf[1] == 0)) {
+            delete[] buf;
+            sz += entry->size;
+            entry = entry->next();
+            continue;
         }
+        uint32_t i = entry->inode;
+        auto in = fs->readInode(i);
+        switch (in->type_permissions & EXT2::Inode::T_MASK) {
+            case EXT2::Inode::T_REGULAR_FILE:
+                sub.pushBack(Entry { buf, new VFSFile(fs, i, in) });
+                break;
+            case EXT2::Inode::T_DIRECTORY:
+                sub.pushBack(Entry { buf, new VFSDirectory(fs, i, in) });
+                break;
+            default:
+                delete in;
+        }
+        delete[] buf;
         sz += entry->size;
         entry = entry->next();
     }
     Memory::free(content);
-    return 0;
 }
 
 EXT2::EXT2(uint32_t drive, uint32_t start, uint32_t size) : drive(drive), base(start), length(size) {
@@ -68,6 +89,7 @@ EXT2::EXT2(uint32_t drive, uint32_t start, uint32_t size) : drive(drive), base(s
         memcpy(desc + i, sec + i * 16, sizeof (BlockGroupDescriptor));
     }
     Memory::free(sec);
+    _root = VFS::FilePtr(new VFSDirectory(this, 2));
 }
 
 void EXT2::readBlock(uint32_t i, void *data) {
@@ -135,6 +157,6 @@ void *EXT2::readInodeContent(Inode *inode) {
     return buf;
 }
 
-EXT2::Iterator *EXT2::root() {
-    return new Iterator(this);
+VFS::FilePtr EXT2::root() {
+    return _root;
 }

@@ -4,12 +4,12 @@ MOUNT_DIR=/mnt/nos
 
 install: $(DISK_DIR)/boot/grub/grub.cfg $(DISK_DIR)/boot/kernel.bin
 	make checkSystem
-	sudo mkdir -p $(MOUNT_DIR)/boot/grub $(MOUNT_DIR)/bin
-	sudo cp $(DISK_DIR)/boot/grub/grub.cfg $(MOUNT_DIR)/boot/grub
-	sudo cp $(DISK_DIR)/boot/kernel.bin $(MOUNT_DIR)/boot
-	sudo cp -r $(DISK_DIR)/bin $(MOUNT_DIR)/
-	sudo grub-install --root-directory=$(MOUNT_DIR) --no-floppy --modules="normal part_msdos ext2 multiboot" /dev/loop0
+	sudo cp -r $(DISK_DIR)/* $(MOUNT_DIR)
+	make installGrub
 	touch install
+
+installGrub: checkMount
+	sudo grub-install --root-directory=$(MOUNT_DIR) --no-floppy --modules="normal part_msdos ext2 multiboot" /dev/loop0
 
 run: install
 	qemu-system-i386 -m 1G -drive format=raw,file=$(DISK_FILE) -serial file:serial.log

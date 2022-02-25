@@ -1,12 +1,15 @@
 #pragma once
 
 #include <stdint.h>
+#include "../vfs/vfs.h"
+#include "../util/array.h"
 
 struct TaskControlBlock {
     enum {
         RUNNING = 0,
         READYTORUN = 1,
         BLOCKING = 2,
+        TERMINATED = 3,
         RS_MASK = 3,
 
         WAITING = 4,
@@ -24,6 +27,7 @@ struct TaskControlBlock {
     uint32_t param; // for sleeing
     uint32_t *pages;
     uint32_t npage, npageCapa;
+    Array<VFS::FileDescriptor *> *file;
 
     TaskControlBlock();
     TaskControlBlock(const TaskControlBlock &) = delete;

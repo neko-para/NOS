@@ -1,8 +1,10 @@
 #pragma once
 
 #include <stdint.h>
+#include "../vfs/vfs.h"
+#include "../util/new.h"
 
-class EXT2 {
+class EXT2 : public VFS::FileSystem {
 public:
     struct SuperBlock {
         uint32_t inodes_count;
@@ -75,7 +77,8 @@ public:
             T_BLOCK_DEV = 6 << 12,
             T_REGULAR_FILE = 8 << 12,
             T_SYMLINK = 10 << 12,
-            T_UNIX_SOCKET = 12 << 12
+            T_UNIX_SOCKET = 12 << 12,
+            T_MASK = 15 << 12
         };
         uint16_t type_permissions;
         uint16_t user_id;
@@ -112,36 +115,39 @@ public:
         }
     };
 
-    class Iterator {
-        friend class EXT2;
-    public:
-        Iterator(const Iterator &) = delete;
-        ~Iterator();
+    struct VFSFileDescriptor : public VFS::FileDescriptor {
+        uint32_t seekg = 0;
 
-        Iterator &operator=(const Iterator &) = delete;
-
-        bool isDir() {
-            return inode->type_permissions & Inode::T_DIRECTORY;
+        virtual VFSFileDescriptor *clone() const {
+            return new VFSFileDescriptor(*this);
         }
-        bool isFile() {
-            return inode->type_permissions & Inode::T_REGULAR_FILE;
-        }
+        int32_t read(void *buf, uint32_t size) override;
+    };
 
-        void enumDirectory(void (*func)(DirectoryEntry *entry));
-        uint32_t contentSize() const {
-            return inode->size_lo;
-        }
-        void *readContent() const {
-            return ext2->readInodeContent(inode);
-        }
+    struct VFSFile : public VFS::RegularFile {
+        EXT2 *fs;
+        uint32_t id;
+        EXT2::Inode *inode;
 
-        Iterator *get(const char *path);
+        VFSFile(EXT2 *fs, uint32_t i, EXT2::Inode *n = nullptr);
 
-    private:
-        Iterator(EXT2 *ext2, uint32_t id = 2);
-        EXT2 *ext2;
-        uint32_t ID;
-        Inode *inode;
+        ~VFSFile() {
+            delete inode;
+        }
+        EXT2::VFSFileDescriptor *open(int32_t flag) override;
+        int32_t stat(Stat *buf) override;
+    };
+
+    struct VFSDirectory : public VFS::Directory {
+        EXT2 *fs;
+        uint32_t id;
+        EXT2::Inode *inode;
+
+        VFSDirectory(EXT2 *fs, uint32_t i, EXT2::Inode *n = nullptr);
+
+        ~VFSDirectory() {
+            delete inode;
+        }
     };
 
     EXT2(uint32_t drive, uint32_t start, uint32_t size);
@@ -152,10 +158,11 @@ public:
     void readInodeContent(Inode *inode, void *data); // no ext2 in inodes, so have to be called here
     void *readInodeContent(Inode *inode);
 
-    Iterator *root();
+    VFS::FilePtr root() override;
 
 private:
     uint32_t drive, base, length;
     SuperBlock super;
     BlockGroupDescriptor *desc;
+    VFS::FilePtr _root;
 };
