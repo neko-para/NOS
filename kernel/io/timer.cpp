@@ -29,7 +29,7 @@ bool checkSleeing(TaskControlBlock *task) {
     }
 }
 
-__attribute__((interrupt)) void isrHandler32(InterruptFrame *frame) {
+__attribute__((interrupt)) void isrHandler32(InterruptFrame *) {
     Idt::end(0);
     Timer::msSinceBoot += timeBetweenTicks;
     if (Task::inited) {

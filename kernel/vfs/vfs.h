@@ -36,16 +36,16 @@ struct File {
         attrib = 0;
     }
     virtual ~File() {}
-    virtual int32_t read(void *buf, uint32_t size) {
+    virtual int32_t read(void *, uint32_t ) {
         return -1;
     }
-    virtual int32_t write(const void *buf, uint32_t size) {
+    virtual int32_t write(const void *, uint32_t ) {
         return -1;
     }
-    virtual int32_t stat(Stat *buf) {
+    virtual int32_t stat(Stat *) {
         return -1;
     }
-    virtual FileDescriptor *open(int32_t flag);
+    virtual FileDescriptor *open(int32_t );
 };
 
 struct FilePtr {
@@ -140,6 +140,7 @@ FilePtr lookup(const String &path);
 void mount(const String &path, FileSystem *filesystem);
 
 struct FileSystem {
+    virtual ~FileSystem() {}
     virtual FilePtr root() {
         return 0;
     }
@@ -149,6 +150,7 @@ struct FileDescriptor {
     FilePtr file;
     String path;
 
+    virtual ~FileDescriptor() {}
     virtual FileDescriptor *clone() const {
         return new FileDescriptor(*this);
     }
@@ -177,10 +179,10 @@ struct CharacterDevice : public File {
         type = T_CHAR_DEV;
     }
 
-    virtual int32_t read(uint8_t &dat) {
+    virtual int32_t read(uint8_t &) {
         return 0;
     }
-    virtual int32_t write(uint8_t dat) {
+    virtual int32_t write(uint8_t ) {
         return 0;
     }
     virtual int32_t read(void *buf, uint32_t size) {

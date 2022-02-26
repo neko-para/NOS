@@ -11,7 +11,7 @@ public:
     }
 
     bool full() {
-        return tail + 1 == head || (head == 0) && (tail == Size - 1);
+        return tail + 1 == head || ((head == 0) && (tail == Size - 1));
     }
 
     bool push(const Type &v) {
@@ -33,6 +33,7 @@ public:
         if (++head == Size) {
             head = 0;
         }
+        return true;
     }
 
 private:

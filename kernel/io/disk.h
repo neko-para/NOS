@@ -36,7 +36,7 @@ public:
     static uint16_t *read();
 
 private:
-    static uint8_t poll400();
+    static void poll400();
 
     static uint32_t currentDrive;
     static uint8_t presetCount;

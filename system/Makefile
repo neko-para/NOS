@@ -1,35 +1,44 @@
-LD=i686-elf-ld
-AR=i686-elf-ar
-CXX=i686-elf-g++
+BUILD:=../build
+CWD:=system
+ROOT:=..
 
-LIBRARY=libnos.a
-TARGET=test about
+CBUILD=$(BUILD)/$(CWD)
 
-all: $(LIBRARY) $(TARGET)
+CXXSRC=$(wildcard *.cpp)
+CXXOBJ=$(patsubst %.cpp,$(CBUILD)/%.o,$(CXXSRC))
+PROGRAMS=$(patsubst %.cpp,$(CBUILD)/%,$(CXXSRC))
 
-install: all
-	cp $(TARGET) ../disk/bin
+LIBRARY=$(CBUILD)/libnos.a
+LIBOBJ=$(CBUILD)/nos.o
 
-test: test.o $(LIBRARY)
-	$(LD) -o $@ $< -L . -lnos
+all: $(LIBRARY) $(PROGRAMS)
 
-test.o: test.cpp ../kernel/export/nos.h
-	$(CXX) -c -o $@ $< -ffreestanding -I../kernel/export
+include ../Makefile.cfg
 
-about: about.o $(LIBRARY)
-	$(LD) -o $@ $< -L . -lnos
+$(CBUILD)/%: $(CBUILD)/%.o $(LIBRARY)
+	@echo "Linking $@"
+	@mkdir -p `dirname $@`
+	@$(LD) -o $@ $< $(LDFLAGS) -L$(CBUILD) -lnos
 
-about.o: about.cpp ../kernel/export/nos.h
-	$(CXX) -c -o $@ $< -ffreestanding -I../kernel/export
+$(CBUILD)/%.o: %.cpp ../kernel/export/nos.h
+	@echo "Building $@"
+	@mkdir -p `dirname $@`
+	@$(CXX) -c -o $@ $< $(CXXFLAGS) -I../kernel/export
 
-nos.o: ../kernel/export/nos.cpp ../kernel/export/nos.h
-	$(CXX) -c -o $@ $< -ffreestanding
+$(LIBOBJ): ../kernel/export/nos.cpp ../kernel/export/nos.h
+	@echo "Building $@"
+	@mkdir -p `dirname $@`
+	@$(CXX) -c -o $@ $< -ffreestanding
 
-libnos.a: nos.o
-	$(AR) r $@ $^
+$(LIBRARY): $(LIBOBJ)
+	@echo "Archiving $@"
+	@mkdir -p `dirname $@`
+	@$(AR) r $@ $^ 2> /dev/null
 
 clean:
-	-rm -f $(LIBRARY) $(TARGET) $(patsubst %,%.o,$(TARGET)) all
+	@echo "Cleaning $(LIBRARY) $(PROGRAMS) $(CXXOBJ) $(LIBOBJ)"
+	@-rm -f $(LIBRARY) $(PROGRAMS) $(CXXOBJ) $(LIBOBJ)
 
 .SUFFIXES:
-.PHONY: all install clean
+
+.PHONY: all clean

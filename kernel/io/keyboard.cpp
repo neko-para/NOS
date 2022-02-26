@@ -62,6 +62,8 @@ bool Keyboard::syncPush(uint8_t dat, KeyboardMessage *msg) {
             decode(msg, 0xE0 << 8 | dat);
             state = 0;
             return true;
+        default:
+            return false;
     }
 }
 
@@ -118,7 +120,7 @@ void Keyboard::waitReady() {
     }
 }
 
-__attribute__((interrupt)) void isrHandler33(InterruptFrame *frame) {
+__attribute__((interrupt)) void isrHandler33(InterruptFrame *) {
     Idt::end(1);
     uint8_t ch = inb(0x60);
     Keyboard::push(ch);

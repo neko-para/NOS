@@ -155,7 +155,7 @@ int32_t Task::fork(uint32_t sp) {
     return task->tid;
 }
 
-void Task::exit(int32_t ret) {
+void Task::exit(int32_t ) {
     lock();
     // although we're using its page as stack, freeing it doesn't make it invalid
     if (currentTask->cr3 != flatPage->cr3()) {
@@ -217,7 +217,7 @@ static uint32_t prepare_user_stack(uint32_t entry, uint32_t virAddr) {
     return reinterpret_cast<uint32_t>(bottom + (1 << 12) - 20);
 }
 
-static void enterElf(uint32_t param) {
+static void enterElf(uint32_t ) {
     Task::unlock();
 
     switchRing3((1 << 30) - 20);

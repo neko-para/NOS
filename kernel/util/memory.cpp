@@ -8,7 +8,7 @@ constexpr uint32_t TAIL_MAGIC = 0x317839FE;
 struct MemNode {
     uint32_t addr, size;
     MemNode *next;
-} __attribute__((packed));
+};
 
 static MemNode nodes[MEMNODE_COUNT];
 static MemNode *pUse, *pFree;
@@ -136,7 +136,7 @@ static uint32_t find_alloc(uint32_t size) {
 void Memory::init() {
     pFree = nodes;
     pUse = 0;
-    for (int i = 1; i < MEMNODE_COUNT; i++) {
+    for (uint32_t i = 1; i < MEMNODE_COUNT; i++) {
         nodes[i - 1].next = nodes + i;
     }
 }

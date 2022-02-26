@@ -68,7 +68,7 @@ uint16_t *Disk::read() {
     return buffer;
 }
 
-uint8_t Disk::poll400() {
+void Disk::poll400() {
     for (int i = 0; i < 15; i++) {
         inb(P_STATUS);;
     }

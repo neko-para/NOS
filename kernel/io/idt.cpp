@@ -69,7 +69,7 @@ static void initPIC() {
     outb(PIC2_ICW4, 0x01);
 }
 
-__attribute__((interrupt)) void isrHandler46(InterruptFrame *frame) {
+__attribute__((interrupt)) void isrHandler46(InterruptFrame *) {
     Idt::end(14);
 }
 

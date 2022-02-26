@@ -6,7 +6,7 @@ int32_t FileDescriptor::close() {
     return 0;
 }
 
-FileDescriptor *File::open(int32_t flag) {
+FileDescriptor *File::open(int32_t ) {
     return new FileDescriptor();
 }
 
@@ -34,6 +34,7 @@ FilePtr lookup(const String &path) {
             prev = pos;
         }
     } while (d);
+    return 0;
 }
 
 void mount(const String &path, FileSystem *filesystem) {

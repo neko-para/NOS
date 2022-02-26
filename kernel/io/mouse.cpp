@@ -11,8 +11,7 @@ void Mouse::init() {
     outb(0x60, 0xf4);
 }
 
-__attribute__((interrupt)) void isrHandler44(InterruptFrame *frame) {
+__attribute__((interrupt)) void isrHandler44(InterruptFrame *) {
     Idt::end(12);
-    uint8_t ch = inb(0x60);
-    // term() << ch << endl;
+    inb(0x60);
 }

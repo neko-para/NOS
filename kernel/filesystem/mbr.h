@@ -20,6 +20,8 @@ struct MBREntry {
     }
 };
 
+#pragma pack(push, 2)
+
 struct MBR {
     uint8_t boot[440];
     uint8_t id[4];
@@ -28,4 +30,6 @@ struct MBR {
     uint16_t signature;
 
     void load(uint32_t drive);
-} __attribute__((packed));
+};
+
+#pragma pack(pop)

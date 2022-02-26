@@ -8,7 +8,7 @@ public:
         HEX = 1
     };
 
-    virtual void put(char ch) {};
+    virtual void put(char ) {};
 
     Stream &operator<<(uint16_t v);
     Stream &operator<<(uint32_t v);

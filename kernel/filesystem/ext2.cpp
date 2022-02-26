@@ -32,12 +32,13 @@ EXT2::VFSFile::VFSFile(EXT2 *fs, uint32_t i, EXT2::Inode *n) : fs(fs), id(i), in
     }
 }
 
-EXT2::VFSFileDescriptor *EXT2::VFSFile::open(int32_t flag) {
+EXT2::VFSFileDescriptor *EXT2::VFSFile::open(int32_t ) {
     return new VFSFileDescriptor();
 }
 
 int32_t EXT2::VFSFile::stat(Stat *buf) {
     buf->size = inode->size_lo;
+    return 0;
 }
 
 EXT2::VFSDirectory::VFSDirectory(EXT2 *fs, uint32_t i, EXT2::Inode *n) : fs(fs), id(i), inode(n) {

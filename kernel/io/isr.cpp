@@ -3,12 +3,12 @@
 #include "../process/task.h"
 #include "../util/memory.h"
 
-#define __ISR_IMP(n) __attribute__((interrupt)) void isrHandler##n(InterruptFrame *frame, uint32_t error) { \
+#define __ISR_IMP(n) __attribute__((interrupt)) void isrHandler##n(InterruptFrame *, uint32_t error) { \
     term() << "EXCEPTION: " #n << " ; ERROR CODE: " << hex << error << endl; \
     asm volatile ( "cli; hlt; "); \
 }
 
-#define __ISR_IMP_NE(n) __attribute__((interrupt)) void isrHandler##n(InterruptFrame *frame) { \
+#define __ISR_IMP_NE(n) __attribute__((interrupt)) void isrHandler##n(InterruptFrame *) { \
     term() << "EXCEPTION: " #n << ";" << endl; \
     asm volatile ( "cli; hlt; "); \
 }
@@ -27,7 +27,7 @@ __ISR_IMP(10)
 __ISR_IMP(11)
 __ISR_IMP(12)
 
-__attribute__((interrupt)) void isrHandler13(InterruptFrame *frame, uint32_t error) {
+__attribute__((interrupt)) void isrHandler13(InterruptFrame *, uint32_t error) {
     term() << "Generic Protection Fault" << endl;
     if (error > 0) {
         if (error & 1) {
@@ -51,7 +51,7 @@ __attribute__((interrupt)) void isrHandler13(InterruptFrame *frame, uint32_t err
 }
 
 
-__attribute__((interrupt)) void isrHandler14(InterruptFrame *frame, uint32_t error) {
+__attribute__((interrupt)) void isrHandler14(InterruptFrame *, uint32_t error) {
     uint32_t cr2, cr3;
     asm volatile ("movl %%cr2, %%eax; movl %%eax, %0;":"=m"(cr2)::"%eax");
     asm volatile ("movl %%cr3, %%eax; movl %%eax, %0;":"=m"(cr3)::"%eax");

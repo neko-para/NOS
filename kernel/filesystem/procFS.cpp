@@ -4,7 +4,7 @@
 VFS::FilePtr ProcFS::FDInfo::find(const String &path) {
     int32_t fd = path.toInt();
     const auto &fds = (*tasks[pid]->file);
-    if (fd >= 0 && fd < fds.size()) {
+    if (fd >= 0 && fd < static_cast<int32_t>(fds.size())) {
         auto *p = new VFS::SymLink(fds[fd]->path);
         p->attrib |= A_NEED_DELETE;
         return p;

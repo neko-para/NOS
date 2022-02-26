@@ -55,4 +55,5 @@ extern "C" int32_t syscallHandler(PtRegs *regs) {
         Stat *buf = reinterpret_cast<Stat *>(regs->ecx);
         return VFS::lookup(path).get()->stat(buf);
     }
+    return -1;
 }

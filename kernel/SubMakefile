@@ -1,0 +1,36 @@
+CBUILD=$(BUILD)/$(CWD)
+CDEP=$(BUILD)/.dep/$(CWD)
+LIBRARY=$(CBUILD)/../lib$(shell basename "$(CWD)").a
+CXXSRC=$(wildcard *.cpp)
+CXXOBJ=$(patsubst %.cpp,$(CBUILD)/%.cpp.o,$(CXXSRC))
+CXXDEP=$(patsubst %.cpp,$(CDEP)/%.cpp.d,$(CXXSRC))
+SSRC=$(wildcard *.s)
+SOBJ=$(patsubst %.s,$(CBUILD)/%.s.o,$(SSRC))
+
+all: $(LIBRARY)
+
+-include $(CXXDEP) $(ROOT)/Makefile.cfg
+
+$(LIBRARY): $(CXXDEP) $(CXXOBJ) $(SOBJ)
+	@echo "Archiving $@"
+	@mkdir -p `dirname $@`
+	@$(AR) r $@ $(CXXOBJ) $(SOBJ) 2> /dev/null
+
+$(CDEP)/%.cpp.d: %.cpp
+	@echo "Generating dependency of $<"
+	@mkdir -p `dirname $@`
+	@$(CXX) -MM -MF $@ -MT $(CBUILD)/$<.o $< $(CXXFLAGS)
+	@echo '	@echo "Building $$@"' >> $@
+	@echo '	@mkdir -p `dirname $$@`' >> $@
+	@echo '	@$$(CXX) -c -o $$@ $$< $$(CXXFLAGS)' >> $@
+
+$(CBUILD)/%.s.o: %.s
+	@echo "Building $@"
+	@mkdir -p `dirname $@`
+	@$(AS) -o $@ $< $(ASFLAGS)
+
+clean:
+	@echo "Cleaning $(LIBRARY) $(CXXOBJ) $(CXXDEP) $(SOBJ)"
+	@-rm -f $(LIBRARY) $(CXXOBJ) $(CXXDEP) $(SOBJ)
+
+.PHONY: all clean
