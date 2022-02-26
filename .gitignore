@@ -10,8 +10,6 @@ system/*
 !system/*.h
 !system/Makefile
 
-install
 temp
-
 log.txt
 serial.log

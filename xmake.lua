@@ -36,16 +36,5 @@ target("kernel")
         import("core.project.depend")
         depend.on_changed(function ()
             os.cp(target:targetfile(), "$(projectdir)/disk/boot/kernel.bin")
-            os.vrunv("make", {"install"})
         end, {files = target:targetfile()})
     end)
-
-task("run")
-    on_run(function (target)
-        os.vrunv("make", {"run"})
-    end)
-    set_menu {
-        usage = "xmake run",
-        description = "Run by qemu!",
-        options = {}
-    } 

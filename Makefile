@@ -2,14 +2,16 @@ DISK_DIR=disk
 DISK_FILE=disk.img
 MOUNT_DIR=/mnt/nos
 
-install: $(DISK_DIR)/boot/grub/grub.cfg $(DISK_DIR)/boot/kernel.bin
+install: $(DISK_DIR)/boot/grub/grub.cfg kernel/all system/all
 	make checkSystem
 	sudo cp -r $(DISK_DIR)/* $(MOUNT_DIR)
-	make installGrub
-	touch install
-
-installGrub: checkMount
 	sudo grub-install --root-directory=$(MOUNT_DIR) --no-floppy --modules="normal part_msdos ext2 multiboot" /dev/loop0
+
+kernel/all:
+	xmake
+
+system/all:
+	make -C system all
 
 run: install
 	qemu-system-i386 -m 1G -drive format=raw,file=$(DISK_FILE) -serial file:serial.log

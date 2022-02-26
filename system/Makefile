@@ -6,7 +6,6 @@ LIBRARY=libnos.a
 TARGET=test about
 
 all: $(LIBRARY) $(TARGET)
-	if [ -e ../install ]; then rm ../install; fi
 
 install: all
 	cp $(TARGET) ../disk/bin
@@ -30,7 +29,7 @@ libnos.a: nos.o
 	$(AR) r $@ $^
 
 clean:
-	-rm -f $(LIBRARY) $(TARGET) $(patsubst %,%.o,$(TARGET))
+	-rm -f $(LIBRARY) $(TARGET) $(patsubst %,%.o,$(TARGET)) all
 
 .SUFFIXES:
 .PHONY: all install clean
