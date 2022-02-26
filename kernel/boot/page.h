@@ -35,10 +35,17 @@ public:
     void autoSet(uint32_t phyAddr, uint32_t virAddr, uint8_t attrib);
     void autoSet(uint32_t phyAddr, uint32_t virAddr, uint32_t size, uint8_t attrib);
 
-    void free();
+    void free(); // free tables; not the pages
+
+    static void *mount(uint32_t phyAddr); // mount to tempPageAddr
+    static void *mount(void *phyAddr) {
+        return mount(reinterpret_cast<uint32_t>(phyAddr));
+    }
 
 private:
     uint32_t *pageDirectory;
 };
+
+constexpr uint32_t tempPageAddr = (1 << 27) - 0x1000;
 
 extern Page *flatPage;

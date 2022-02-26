@@ -207,48 +207,76 @@ bool Task::lockSchedule() {
 }
 
 static uint32_t prepare_user_stack(uint32_t entry, uint32_t virAddr) {
-    uint32_t *stack = reinterpret_cast<uint32_t *>(reinterpret_cast<uint32_t>(Frame::allocUpper()) + (1 << 12));
+    uint32_t bottom = reinterpret_cast<uint32_t>(Frame::allocUpper());
+    uint32_t *stack = reinterpret_cast<uint32_t *>(Page::mount(bottom)) + (1 << 10);
     *--stack = 0x23; // data seg
     *--stack = virAddr + 0x1000; // esp
     *--stack = geteflags(); // eflags
     *--stack = 0x1B; // code seg
     *--stack = entry;
-    return reinterpret_cast<uint32_t>(stack);
-}
-
-void Task::enterRing3(void (*entry)()) {
-    Page page(reinterpret_cast<uint32_t *>(currentTask->cr3));
-    uint32_t e = reinterpret_cast<uint32_t>(entry);
-    page.autoSet(e, e, Page::PRESENT | Page::NON_SUPERVISOR | Page::READWRITE);
-    uint32_t stack = prepare_user_stack(reinterpret_cast<uint32_t>(entry), (1 << 30) - 0x1000);
-    currentTask->mapPage((1 << 30) - 0x1000, stack & ~0xFFF);
-    switchRing3((1 << 30) - 4 * 5);
+    return reinterpret_cast<uint32_t>(bottom + (1 << 12) - 20);
 }
 
 static void enterElf(uint32_t param) {
     Task::unlock();
 
     switchRing3((1 << 30) - 20);
-
-/*
-    Page page(reinterpret_cast<uint32_t *>(currentTask->cr3));
-    uint32_t stack = prepare_user_stack(reinterpret_cast<uint32_t>(param));
-    page.autoSet(stack, stack, Page::PRESENT | Page::NON_SUPERVISOR | Page::READWRITE);
-    switchRing3(stack);
-*/
 }
 
-int32_t Task::loadELF(ELF *elf, uint32_t prio) {
+int32_t Task::createViaELF(ELF *elf, uint32_t prio) {
+    Page page;
+    uint32_t stack = prepare_user_stack(elf->header->entry, (1 << 30) - 0x1000);
+    TaskControlBlock *task = prepare_task(reinterpret_cast<uint32_t>(enterElf), page.cr3(), stack, prio);
+
     uint32_t npage = elf->countPageNeeded();
     uint32_t *phyPages = new uint32_t[npage];
     for (uint32_t i = 0; i < npage; i++) {
         phyPages[i] = reinterpret_cast<uint32_t>(Frame::allocUpper());
-        currentTask->storePage(phyPages[i]); // TODO: use TCB::pages instead
+        task->storePage(phyPages[i]); // TODO: use TCB::pages instead
     }
-    Page page;
+    page.autoSet(0, 0, 1 << 27, Page::PRESENT | Page::READWRITE); // under 128M will be kernel's
     elf->preparePage(&page, phyPages);
+    page.autoSet(stack, (1 << 30) - 0x1000, Page::PRESENT | Page::READWRITE | Page::NON_SUPERVISOR);
+    task->storePage(stack & ~0xFFF);
+    task->file = new Array<VFS::FileDescriptor *>(*currentTask->file);
+    for (uint32_t i = 0; i < task->file->size(); i++) {
+        (*task->file)[i] = (*task->file)[i]->clone();
+    }
+
+    ready->insertByPriority(task);
+    schedule();
+    return task->tid;
+}
+
+void Task::replaceViaELF(ELF *elf) {
+    Page page;
     uint32_t stack = prepare_user_stack(elf->header->entry, (1 << 30) - 0x1000);
+
+    page.autoSet(0, 0, 1 << 27, Page::PRESENT | Page::READWRITE);
+    page.load();
+
+    if (currentTask->cr3 != flatPage->cr3()) {
+        Page(currentTask->cr3).free();
+        for (uint32_t i = 0; i < currentTask->npage; i++) {
+            Frame::free(reinterpret_cast<void *>(currentTask->pages[i]));
+        }
+        delete[] currentTask->pages;
+        currentTask->pages = 0;
+        currentTask->npage = 0;
+    }
+
+    uint32_t npage = elf->countPageNeeded();
+    uint32_t *phyPages = new uint32_t[npage];
+    for (uint32_t i = 0; i < npage; i++) {
+        phyPages[i] = reinterpret_cast<uint32_t>(Frame::allocUpper());
+        currentTask->storePage(phyPages[i]);
+    }
+    currentTask->cr3 = page.cr3();
+    elf->preparePage(&page, phyPages); // will load page
     page.autoSet(stack, (1 << 30) - 0x1000, Page::PRESENT | Page::READWRITE | Page::NON_SUPERVISOR);
     currentTask->storePage(stack & ~0xFFF);
-    return create(enterElf, page.cr3(), stack, prio);
+
+    delete elf;
+
+    switchRing3((1 << 30) - 4 * 5);
 }

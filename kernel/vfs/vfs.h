@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "../export/syscall.h"
+#include "../export/nos.h"
 #include "../util/array.h"
 #include "../util/string.h"
 

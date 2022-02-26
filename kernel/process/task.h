@@ -29,8 +29,8 @@ public:
     static bool schedule();
     static bool lockSchedule();
 
-    static void enterRing3(void (*entry)());
-    static int32_t loadELF(ELF *elf, uint32_t prio = 10);
+    static int32_t createViaELF(ELF *elf, uint32_t prio = 10);
+    static void replaceViaELF(ELF *elf);
 
     static bool inited;
 };

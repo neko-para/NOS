@@ -38,6 +38,21 @@ void prepareMemory(BootInfo *info) {
     }
 }
 
+void subRoot(uint32_t ) {
+    Task::unlock();
+    
+    auto f = VFS::lookup("/bin/test");
+    Stat st;
+    f.getRegularFile()->stat(&st);
+    void *prog = Memory::alloc(st.size);
+    auto fd = f.open("/bin/test", 0);
+    fd->read(prog, st.size);
+    fd->close();
+    delete fd;
+    ELF *elf = new ELF(prog);
+    Task::replaceViaELF(elf);
+}
+
 void mainTask() {
     Task::inited = true;
 
@@ -53,17 +68,7 @@ void mainTask() {
     currentTask->file->pushBack(VFS::lookup("/dev/tty").open("/dev/tty", 0)); // stdin
     currentTask->file->pushBack(VFS::lookup("/dev/tty").open("/dev/tty", 0)); // stdout
 
-    auto f = VFS::lookup("/bin/test");
-    Stat st;
-    f.getRegularFile()->stat(&st);
-    void *prog = Memory::alloc(st.size);
-    auto fd = f.open("/bin/test", 0);
-    fd->read(prog, st.size);
-    fd->close();
-    delete fd;
-    ELF *elf = new ELF(prog);
-    Task::loadELF(elf);
-
+    Task::create(subRoot);
     Task::exit();
 }
 

@@ -1,4 +1,4 @@
-#include "syscall.h"
+#include "nos.h"
 
 static int32_t _syscall(uint32_t eax, uint32_t ebx = 0, uint32_t ecx = 0, uint32_t edx = 0) {
     int32_t res;
@@ -51,6 +51,10 @@ int32_t read(int32_t fd, void *buf, uint32_t len) {
 
 int32_t write(int32_t fd, const void *buf, uint32_t len) {
     return syscall(4, fd, buf, len);
+}
+
+int32_t execve(const char *path, char *const argv[], char *const envp[]) {
+    return syscall(11, path, argv, envp);
 }
 
 int32_t stat(const char *path, struct Stat *buf) {

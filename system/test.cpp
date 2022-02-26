@@ -1,4 +1,4 @@
-#include "../kernel/export/syscall.h"
+#include <nos.h>
 
 void strcpy(char *dst, const char *src) {
     while (*src) {
@@ -21,11 +21,7 @@ extern "C" void _start() {
     if (p) { // parent
         write(1, "parent exit!\n", 13);
     } else {
-        write(1, "From child!\n", 12);
-        uint8_t ch[] = "you enter: ?\n";
-        read(0, ch + 11, 1);
-        write(1, ch, 13);
-        write(1, "child exit!\n", 12);
+        execve("/bin/about", 0, 0);
     }
     exit(0);
 }

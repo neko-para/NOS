@@ -34,8 +34,6 @@ Page::Page(uint32_t *preset) {
     }
 }
 
-constexpr uint32_t tempPageAddr = (1 << 27) - 0x1000;
-
 uint32_t Page::clone(TaskControlBlock *target) {
     Page other;
     other.autoSet(0, 0, 1 << 27, Page::PRESENT | Page::READWRITE);
@@ -52,9 +50,8 @@ uint32_t Page::clone(TaskControlBlock *target) {
                 continue;
             }
             void *buf = Frame::allocUpper();
-            autoSet(reinterpret_cast<uint32_t>(buf), tempPageAddr, Page::PRESENT | Page::READWRITE);
-            load();
-            memcpy(reinterpret_cast<void *>(tempPageAddr), reinterpret_cast<void *>(hi << 22 | mi << 12), 0x1000);
+            void *p = mount(buf);
+            memcpy(p, reinterpret_cast<void *>(hi << 22 | mi << 12), 0x1000);
             dst[mi] = reinterpret_cast<uint32_t>(buf) | (src[mi] & 0xFFF);
             target->storePage(reinterpret_cast<uint32_t>(buf));
         }
@@ -130,4 +127,11 @@ void Page::free() {
         }
     }
     Frame::free(pageDirectory);
+}
+
+void *Page::mount(uint32_t phyAddr) {
+    Page page(currentTask->cr3);
+    page.autoSet(phyAddr, tempPageAddr, Page::PRESENT | Page::READWRITE);
+    page.load();
+    return reinterpret_cast<void *>(tempPageAddr);
 }

@@ -30,7 +30,6 @@ uint32_t ELF::countPageNeeded() {
 }
 
 Page *ELF::preparePage(Page *page, uint32_t *phyAvl) {
-    page->autoSet(0, 0, 1 << 27, Page::PRESENT | Page::READWRITE); // under 128M will be kernel's
     uint32_t x = 0;
     for (uint32_t i = 0; i < header->program_header_entry_count; i++) {
         ProgramHeader *ph = nthPH(i);
@@ -45,8 +44,9 @@ Page *ELF::preparePage(Page *page, uint32_t *phyAvl) {
                 attrib |= Page::READWRITE;
             }
             for (uint32_t j = 0; j < pc; j++) {
-                memset(reinterpret_cast<void *>(phyAvl[x]), 0, ph->memsz);
-                memcpy(reinterpret_cast<void *>(phyAvl[x]), at<void>(ph->offset), ph->filesz);
+                auto *p = Page::mount(phyAvl[x]);
+                memset(p, 0, ph->memsz);
+                memcpy(p, at<void>(ph->offset), ph->filesz);
                 page->autoSet(phyAvl[x++], pv, attrib, attrib);
                 pv += 0x1000;
             }

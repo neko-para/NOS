@@ -1,6 +1,6 @@
 #include "syscall.h"
 #include "task.h"
-#include "../export/syscall.h"
+#include "../export/nos.h"
 #include "../vfs/vfs.h"
 
 extern "C" int32_t syscallHandler(PtRegs *regs) {
@@ -31,6 +31,24 @@ extern "C" int32_t syscallHandler(PtRegs *regs) {
         VFS::FilePtr f = VFS::lookup(path);
         currentTask->file->pushBack(f.open(path, flag));
         return currentTask->file->size() - 1;
+    }
+    case 11: // execve
+    {
+        const char *path = reinterpret_cast<const char *>(regs->ebx);
+        auto f = VFS::lookup(path);
+        if (!f.get()) {
+            return -1;
+        }
+        Stat st;
+        f.getRegularFile()->stat(&st);
+        void *prog = Memory::alloc(st.size);
+        auto fd = f.open(path, 0);
+        fd->read(prog, st.size);
+        fd->close();
+        delete fd;
+        ELF *elf = new ELF(prog);
+        Task::replaceViaELF(elf);
+        return 0; // dead code
     }
     case 18: // stat
         const char *path = reinterpret_cast<const char *>(regs->ebx);
