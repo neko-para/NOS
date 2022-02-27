@@ -53,6 +53,14 @@ int32_t write(int32_t fd, const void *buf, uint32_t len) {
     return syscall(4, fd, buf, len);
 }
 
+int32_t open(const char *path, int32_t flag) {
+    return syscall(5, path, flag);
+}
+
+int32_t close(int32_t fd) {
+    return syscall(6, fd);
+}
+
 int32_t execve(const char *path, char *const argv[], char *const envp[]) {
     return syscall(11, path, argv, envp);
 }
@@ -61,5 +69,12 @@ int32_t stat(const char *path, struct Stat *buf) {
     return syscall(18, path, buf);
 }
 
+int32_t lseek(int32_t fd, int32_t offset, int32_t whence) {
+    return syscall(19, fd, offset, whence);
+}
+
+int32_t getpid() {
+    return syscall(20);
+}
 
 }

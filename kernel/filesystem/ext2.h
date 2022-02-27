@@ -122,6 +122,7 @@ public:
             return new VFSFileDescriptor(*this);
         }
         int32_t read(void *buf, uint32_t size) override;
+        int32_t seek(int32_t offset, int32_t whence) override;
     };
 
     struct VFSFile : public VFS::RegularFile {

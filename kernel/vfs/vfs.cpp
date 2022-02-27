@@ -2,10 +2,6 @@
 
 namespace VFS {
 
-int32_t FileDescriptor::close() {
-    return 0;
-}
-
 FileDescriptor *File::open(int32_t ) {
     return new FileDescriptor();
 }

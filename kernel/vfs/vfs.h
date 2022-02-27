@@ -160,7 +160,12 @@ struct FileDescriptor {
     virtual int32_t write(const void *buf, uint32_t size) {
         return file ? file->write(buf, size) : -1;
     }
-    virtual int32_t close();
+    virtual int32_t close() {
+        return 0;
+    }
+    virtual int32_t seek(int32_t , int32_t ) {
+        return -1;
+    }
 };
 
 inline FileDescriptor *FilePtr::open(const String &path, int32_t flag) const {

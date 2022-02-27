@@ -26,6 +26,34 @@ int32_t EXT2::VFSFileDescriptor::read(void *buf, uint32_t size) {
     return size;
 }
 
+int32_t EXT2::VFSFileDescriptor::seek(int32_t offset, int32_t whence) {
+    auto *f = reinterpret_cast<VFSFile *>(file.getRegularFile());
+    switch (whence) {
+    case SEEK_SET:
+        if (offset < 0) {
+            return -1;
+        }
+        seekg = offset;
+        break;
+    case SEEK_CUR:
+        if (int32_t(seekg) + offset < 0) {
+            return -1;
+        }
+        seekg += offset;
+        break;
+    case SEEK_END:
+        if (int32_t(f->inode->size_lo) + offset < 0) {
+            return -1;
+        }
+        seekg = f->inode->size_lo + offset;
+        break;
+    default:
+        return -1;
+    }
+    return seekg;
+}
+
+
 EXT2::VFSFile::VFSFile(EXT2 *fs, uint32_t i, EXT2::Inode *n) : fs(fs), id(i), inode(n) {
     if (!inode) {
         inode = fs->readInode(i);

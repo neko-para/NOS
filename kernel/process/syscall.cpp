@@ -20,8 +20,11 @@ extern "C" int32_t syscallHandler(PtRegs *regs) {
     case 4: // write
     {
         int32_t fd = regs->ebx;
+        auto node = (*currentTask->file)[fd];
+        if (!node) {
+            return -1;
+        }
         const void *buf = reinterpret_cast<const void *>(regs->ecx);
-        const auto &node = (*currentTask->file)[fd];
         return node->file->write(buf, regs->edx);
     }
     case 5: // open
@@ -31,6 +34,17 @@ extern "C" int32_t syscallHandler(PtRegs *regs) {
         VFS::FilePtr f = VFS::lookup(path);
         currentTask->file->pushBack(f.open(path, flag));
         return currentTask->file->size() - 1;
+    }
+    case 6: //close
+    {
+        int32_t fd = regs->ebx;
+        auto node = (*currentTask->file)[fd];
+        if (!node) {
+            return -1;
+        }
+        (*currentTask->file)[fd] = 0;
+        delete node;
+        return 0;
     }
     case 11: // execve
     {
@@ -51,9 +65,22 @@ extern "C" int32_t syscallHandler(PtRegs *regs) {
         return 0; // dead code
     }
     case 18: // stat
+    {
         const char *path = reinterpret_cast<const char *>(regs->ebx);
         Stat *buf = reinterpret_cast<Stat *>(regs->ecx);
         return VFS::lookup(path).get()->stat(buf);
+    }
+    case 19: // lseek
+    {
+        int32_t fd = regs->ebx;
+        auto node = (*currentTask->file)[fd];
+        if (!node) {
+            return -1;
+        }
+        return node->seek(regs->ecx, regs->edx);
+    }
+    case 20: // getpid
+        return currentTask->tid;
     }
     return -1;
 }
