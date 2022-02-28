@@ -11,7 +11,7 @@ constexpr uint32_t DefaultTimeSlice = 50;
 
 TaskControlBlock *currentTask;
 TaskControlBlockList *sleeping;
-TaskControlBlock *tasks[65536];
+TaskControlBlock *tasks[MaxTask];
 static TaskControlBlock *idleTask;
 static TaskControlBlockList *ready;
 static uint32_t ntid;
@@ -114,6 +114,12 @@ void Task::init(void (*entry)()) {
     idleTask = prepare_task(reinterpret_cast<uint32_t>(idle), flatPage->cr3(), 0, 0);
     ready->pushBack(idleTask);
 
+    task->child->pushBack(idleTask->tid);
+    idleTask->parent = task->tid;
+
+    tasks[task->tid] = task;
+    tasks[idleTask->tid] = idleTask;
+
     sleeping = new TaskControlBlockList; // incase PIT
 
     switchTask(task);
@@ -129,6 +135,10 @@ int32_t Task::create(void (*entry)(uint32_t), uint32_t cr3, uint32_t param, uint
     for (uint32_t i = 0; i < task->file->size(); i++) {
         (*task->file)[i] = (*task->file)[i]->clone();
     }
+    task->parent = currentTask->tid;
+    currentTask->child->pushBack(task->tid);
+
+    tasks[task->tid] = task;
 
     ready->insertByPriority(task);
     schedule();
@@ -147,25 +157,62 @@ int32_t Task::fork(uint32_t sp) {
     task->cr3 = cr3;
     task->file = new Array<VFS::FileDescriptor *>(*currentTask->file);
     for (uint32_t i = 0; i < task->file->size(); i++) {
-        (*task->file)[i] = (*task->file)[i]->clone();
+        if ((*currentTask->file)[i]) {
+            (*task->file)[i] = (*task->file)[i]->clone();
+        } else {
+            (*task->file)[i] = 0;
+        }
     }
+    task->parent = currentTask->tid;
+    currentTask->child->pushBack(task->tid);
+
+    tasks[task->tid] = task;
 
     ready->insertByPriority(task);
     schedule();
     return task->tid;
 }
 
-void Task::exit(int32_t ) {
+void Task::exit(int8_t ret, int8_t sig) {
     lock();
-    // although we're using its page as stack, freeing it doesn't make it invalid
-    if (currentTask->cr3 != flatPage->cr3()) {
-        Page(currentTask->cr3).free();
+    currentTask->param = (ret << 8) | sig;
+    currentTask->setRunningState(TaskControlBlock::TERMINATED);
+    auto p = tasks[currentTask->parent];
+    if (p->getRunningState() == TaskControlBlock::BLOCKING && p->getBlockingReason() == TaskControlBlock::WAITCHILD) {
+        if (static_cast<int32_t>(p->param) == currentTask->tid || p->param == 0) {
+            p->param = currentTask->tid;
+            unlock();
+            unblock(p);
+            return; // just incase. should never come back
+        }
     }
-    tasks[currentTask->tid] = 0;
-    delete currentTask;
-    TaskControlBlock *task = ready->popFront();
-    switchWrap(task);
+    schedule();
 }
+
+int32_t Task::clean(int32_t tid) {
+    PostponeScheduleLock::lock();
+    TaskControlBlock *task = tasks[tid];
+    tasks[tid] = 0;
+    int32_t ret = task->param;
+    if (task->cr3 != flatPage->cr3()) {
+        Page(task->cr3).free();
+    }
+    for (uint32_t i = 0; i < task->file->size(); i++) {
+        auto p = (*task->file)[i];
+        if (p) {
+            delete p;
+        }
+    }
+    for (uint32_t i = 0; i < task->child->size(); i++) {
+        auto id = (*task->child)[i];
+        tasks[id]->parent = 1;
+        tasks[1]->child->pushBack(id);
+    }
+    delete task;
+    PostponeScheduleLock::unlock();
+    return ret;
+}
+
 
 void Task::switchWrap(TaskControlBlock *task) {
     task->setRunningState(TaskControlBlock::RUNNING);
@@ -242,6 +289,9 @@ int32_t Task::createViaELF(ELF *elf, uint32_t prio) {
     for (uint32_t i = 0; i < task->file->size(); i++) {
         (*task->file)[i] = (*task->file)[i]->clone();
     }
+    task->parent = currentTask->tid;
+    currentTask->child->pushBack(task->tid);
+    tasks[task->tid] = task;
 
     ready->insertByPriority(task);
     schedule();

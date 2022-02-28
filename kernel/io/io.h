@@ -79,6 +79,18 @@ private:
     static uint32_t count;
 };
 
+template <typename Type>
+struct LockGuard {
+    LockGuard() {
+        Type::lock();
+    }
+    LockGuard(const LockGuard &) = delete;
+    ~LockGuard() {
+        Type::unlock();
+    }
+    LockGuard &operator=(const LockGuard &) = delete;
+};
+
 struct _InterruptLock {
     static void lock();
     static void unlock();

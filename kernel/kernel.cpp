@@ -61,7 +61,7 @@ void mainTask() {
     currentTask->file->pushBack(VFS::lookup("/dev/tty").open("/dev/tty", 0)); // stdout
 
     Task::create(subRoot);
-    Task::exit();
+    Task::block();
 }
 
 extern "C" void kernel_main(BootInfo *info) {

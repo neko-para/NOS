@@ -4,11 +4,6 @@ disk/boot/kernel.bin
 disk/bin
 disk.img
 
-system/*
-!system/*.cpp
-!system/*.h
-!system/Makefile
-
 install
 install.local
 

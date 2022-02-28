@@ -6,6 +6,7 @@
 #define SYS_write 4
 #define SYS_open 5
 #define SYS_close 6
+#define SYS_waitpid 7
 #define SYS_execve 11
 #define SYS_stat 18
 #define SYS_lseek 19

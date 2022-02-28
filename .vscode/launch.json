@@ -27,8 +27,8 @@
                     "text": "-enable-pretty-printing",
                     "ignoreFailures": true
                 }
-            ],
-            "preLaunchTask": "Launch QEMU"
+            ]
+            // "preLaunchTask": "Launch QEMU"
         }
     ]
 }

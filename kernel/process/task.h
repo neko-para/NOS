@@ -24,7 +24,8 @@ public:
     static void init(void (*entry)());
     static int32_t create(void (*entry)(uint32_t), uint32_t cr3 = 0, uint32_t param = 0, uint32_t prio = 10);
     static int32_t fork(uint32_t entry);
-    static void exit(int32_t ret = 0);
+    static void exit(int8_t ret = 0, int8_t sig = 0);
+    static int32_t clean(int32_t tid);
     static void switchWrap(TaskControlBlock *task);
     static bool schedule();
     static bool lockSchedule();
@@ -35,4 +36,6 @@ public:
     static bool inited;
 };
 
-extern TaskControlBlock *tasks[65536];
+constexpr int32_t MaxTask = 65536;
+
+extern TaskControlBlock *tasks[MaxTask];

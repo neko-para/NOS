@@ -18,8 +18,10 @@ $(KERNEL): $(CDEP)/kernel.cpp.d $(CBUILD)/kernel.cpp.o link.ld $(LIBRARYS)
 	@$(LD) -T link.ld $(LDFLAGS) -o $@ $(CBUILD)/kernel.cpp.o $(LIBRARYS)
 
 $(CDEP)/kernel.cpp.d: kernel.cpp
+	@echo "Generating dependency of $<"
 	@mkdir -p `dirname $@`
 	@$(CXX) -MM -MF $@ -MT $(CBUILD)/$<.o $< $(CXXFLAGS)
+	@echo '	@echo "Building $$@"' >> $@
 	@echo '	@mkdir -p `dirname $$@`' >> $@
 	@echo '	@$$(CXX) -c -o $$@ $$< $$(CXXFLAGS)' >> $@
 

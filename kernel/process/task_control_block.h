@@ -12,9 +12,10 @@ struct TaskControlBlock {
         TERMINATED = 3,
         RS_MASK = 3,
 
-        WAITING = 4,
-        SLEEPING = 8,
-        BR_MASK = 12
+        WAITING = 1 << 4,
+        SLEEPING = 2 << 4,
+        WAITCHILD = 3 << 4,
+        BR_MASK = 3 << 4
     };
 
     uint32_t esp;
@@ -24,10 +25,12 @@ struct TaskControlBlock {
     int32_t tid;
     uint32_t kesp;
     uint32_t priority;
-    uint32_t param; // for sleeing
+    uint32_t param;
     uint32_t *pages;
     uint32_t npage, npageCapa;
     Array<VFS::FileDescriptor *> *file;
+    int32_t parent;
+    Array<int32_t> *child;
 
     TaskControlBlock();
     TaskControlBlock(const TaskControlBlock &) = delete;

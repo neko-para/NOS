@@ -145,6 +145,28 @@ public:
         }
     }
 
+    int32_t indexOf(const Type &val) {
+        for (uint32_t i = 0; i < _size; i++) {
+            if (val == _data[i]) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    void eraseAt(uint32_t pos) {
+        if (pos >= _size) {
+            return;
+        }
+        _data[pos].~Type();
+        while (pos + 1 < _size) {
+            new (_data + pos)Type(static_cast<Type &&>(_data[pos + 1]));
+            _data[pos + 1].~Type();
+            pos++;
+        }
+        _size--;
+    }
+
     Type *data() {
         return _data;
     }

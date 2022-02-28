@@ -12,7 +12,7 @@ PROGRAMS=$(patsubst %.cpp,$(CBUILD)/%,$(CXXSRC))
 
 LIBRARY=$(CBUILD)/libnos.a
 
-all: $(LIBRARY) $(CXXDEP) $(PROGRAMS)
+all: Lib.check $(LIBRARY) $(CXXDEP) $(PROGRAMS)
 
 -include $(CXXDEP) $(ROOT)/Makefile.cfg
 
@@ -29,7 +29,7 @@ $(CDEP)/%.cpp.d: %.cpp
 	@echo '	@mkdir -p `dirname $$@`' >> $@
 	@echo '	@$$(CXX) -c -o $$@ $$< $$(CXXFLAGS) -I../kernel/nos' >> $@
 
-$(LIBRARY):
+Lib.check: 
 	@make -C $(ROOT)/kernel/nos all BUILD=../$(CBUILD) CWD=nos ROOT=../..
 
 Lib.clean:
@@ -41,4 +41,4 @@ clean: Lib.clean
 
 .SUFFIXES:
 
-.PHONY: all clean Lib.clean
+.PHONY: all clean Lib.check Lib.clean

@@ -1,3 +1,4 @@
+#include <sys/wait.h>
 #include <unistd.h>
 
 void strcpy(char *dst, const char *src) {
@@ -17,8 +18,13 @@ uint32_t strlen(const char *src) {
 
 extern "C" void _start() {
     write(1, "From parent!\n", 13);
-    int32_t p = fork();
+    pid_t p = fork();
     if (p) { // parent
+        int ws;
+        char buf[] = "child exited 0!\n";
+        waitpid(p, &ws, 0);
+        buf[13] = WEXITSTATUS(ws) + '0';
+        write(1, buf, 16);
         write(1, "parent exit!\n", 13);
     } else {
         execve("/bin/about", 0, 0);

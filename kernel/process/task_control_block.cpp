@@ -10,6 +10,8 @@ TaskControlBlock::TaskControlBlock() {
     npage = 0;
     npageCapa = 0;
     file = new Array<VFS::FileDescriptor *>();
+    parent = -1;
+    child = new Array<int32_t>();
 }
 
 TaskControlBlock::~TaskControlBlock() {
@@ -23,6 +25,7 @@ TaskControlBlock::~TaskControlBlock() {
         delete (*file)[i];
     }
     delete file;
+    delete child;
 }
 
 void TaskControlBlock::mapPage(uint32_t virAddr) {

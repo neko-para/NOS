@@ -1,5 +1,6 @@
 #include <sys/syscall.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <stdarg.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -18,7 +19,11 @@ long syscall(long number, ...) {
 }
 
 void _exit(int status) {
-    return syscall(SYS_exit, status);
+    syscall(SYS_exit, status);
+    // shall not back here
+    while (1) {
+        ;
+    }
 }
 
 pid_t fork(void) {
@@ -49,10 +54,24 @@ pid_t getpid(void) {
     return syscall(SYS_getpid);
 }
 
+/* sys/stat.h */
+
 int stat(const char *pathname, struct stat *statbuf) {
     return syscall(SYS_stat, pathname, statbuf);
 }
 
+/* fcntl.h */
+
 int open(const char *pathname, int flags) {
     return syscall(SYS_open, pathname, flags);
+}
+
+/* sys/wait.h */
+
+pid_t wait(int *wstatus) {
+    return waitpid(-1, wstatus, 0);
+}
+
+pid_t waitpid(pid_t pid, int *wstatus, int options) {
+    return syscall(SYS_waitpid, pid, wstatus, options);
 }
