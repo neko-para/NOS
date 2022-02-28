@@ -1,28 +1,39 @@
 CBUILD=$(BUILD)/$(CWD)
-CDEP=$(BUILD)/.dep/$(CWD)
+CDEPDIR=$(BUILD)/.dep/$(CWD)
 LIBRARY=$(CBUILD)/../lib$(shell basename "$(CWD)").a
 CXXSRC=$(wildcard *.cpp)
 CXXOBJ=$(patsubst %.cpp,$(CBUILD)/%.cpp.o,$(CXXSRC))
-CXXDEP=$(patsubst %.cpp,$(CDEP)/%.cpp.d,$(CXXSRC))
+CXXDEP=$(patsubst %.cpp,$(CDEPDIR)/%.cpp.d,$(CXXSRC))
+CSRC=$(wildcard *.c)
+COBJ=$(patsubst %.c,$(CBUILD)/%.c.o,$(CSRC))
+CDEP=$(patsubst %.c,$(CDEPDIR)/%.c.d,$(CSRC))
 SSRC=$(wildcard *.s)
 SOBJ=$(patsubst %.s,$(CBUILD)/%.s.o,$(SSRC))
 
 all: $(LIBRARY)
 
--include $(CXXDEP) $(ROOT)/Makefile.cfg
+-include $(CXXDEP) $(CDEP) $(ROOT)/Makefile.cfg
 
-$(LIBRARY): $(CXXDEP) $(CXXOBJ) $(SOBJ)
+$(LIBRARY): $(CXXDEP) $(CXXOBJ) $(CDEP) $(COBJ) $(SOBJ)
 	@echo "Archiving $@"
 	@mkdir -p `dirname $@`
-	@$(AR) r $@ $(CXXOBJ) $(SOBJ) 2> /dev/null
+	@$(AR) r $@ $(CXXOBJ) $(COBJ) $(SOBJ) 2> /dev/null
 
-$(CDEP)/%.cpp.d: %.cpp
+$(CDEPDIR)/%.cpp.d: %.cpp
 	@echo "Generating dependency of $<"
 	@mkdir -p `dirname $@`
 	@$(CXX) -MM -MF $@ -MT $(CBUILD)/$<.o $< $(CXXFLAGS)
 	@echo '	@echo "Building $$@"' >> $@
 	@echo '	@mkdir -p `dirname $$@`' >> $@
 	@echo '	@$$(CXX) -c -o $$@ $$< $$(CXXFLAGS)' >> $@
+
+$(CDEPDIR)/%.c.d: %.c
+	@echo "Generating dependency of $<"
+	@mkdir -p `dirname $@`
+	@$(CC) -MM -MF $@ -MT $(CBUILD)/$<.o $< $(CFLAGS)
+	@echo '	@echo "Building $$@"' >> $@
+	@echo '	@mkdir -p `dirname $$@`' >> $@
+	@echo '	@$$(CC) -c -o $$@ $$< $$(CFLAGS)' >> $@
 
 $(CBUILD)/%.s.o: %.s
 	@echo "Building $@"

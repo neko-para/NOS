@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include "boot/bootinfo.h"
 #include "boot/gdt.h"
 #include "boot/page.h"
@@ -41,16 +42,7 @@ void prepareMemory(BootInfo *info) {
 void subRoot(uint32_t ) {
     Task::unlock();
     
-    auto f = VFS::lookup("/bin/test");
-    Stat st;
-    f.getRegularFile()->stat(&st);
-    void *prog = Memory::alloc(st.size);
-    auto fd = f.open("/bin/test", 0);
-    fd->read(prog, st.size);
-    fd->close();
-    delete fd;
-    ELF *elf = new ELF(prog);
-    Task::replaceViaELF(elf);
+    execve("/bin/test", 0, 0);
 }
 
 void mainTask() {

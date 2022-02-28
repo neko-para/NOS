@@ -1,23 +1,24 @@
+#include <sys/syscall.h>
+#include <sys/stat.h>
 #include "syscall.h"
 #include "task.h"
-#include "../export/nos.h"
 #include "../vfs/vfs.h"
 
 extern "C" int32_t syscallHandler(PtRegs *regs) {
     switch (regs->eax) {
-    case 1: // exit
+    case SYS_exit: // exit
         Task::exit();
         return 0;
-    case 2: // fork
+    case SYS_fork: // fork
         return Task::fork(reinterpret_cast<uint32_t>(&regs->ebx));
-    case 3: // read
+    case SYS_read: // read
     {
         int32_t fd = regs->ebx;
         void *buf = reinterpret_cast<void *>(regs->ecx);
         const auto &node = (*currentTask->file)[fd];
         return node->file->read(buf, regs->edx);
     }
-    case 4: // write
+    case SYS_write: // write
     {
         int32_t fd = regs->ebx;
         auto node = (*currentTask->file)[fd];
@@ -27,7 +28,7 @@ extern "C" int32_t syscallHandler(PtRegs *regs) {
         const void *buf = reinterpret_cast<const void *>(regs->ecx);
         return node->file->write(buf, regs->edx);
     }
-    case 5: // open
+    case SYS_open: // open
     {
         const char *path = reinterpret_cast<const char *>(regs->ebx);
         int32_t flag = regs->ecx;
@@ -35,7 +36,7 @@ extern "C" int32_t syscallHandler(PtRegs *regs) {
         currentTask->file->pushBack(f.open(path, flag));
         return currentTask->file->size() - 1;
     }
-    case 6: //close
+    case SYS_close: // close
     {
         int32_t fd = regs->ebx;
         auto node = (*currentTask->file)[fd];
@@ -46,31 +47,31 @@ extern "C" int32_t syscallHandler(PtRegs *regs) {
         delete node;
         return 0;
     }
-    case 11: // execve
+    case SYS_execve: // execve
     {
         const char *path = reinterpret_cast<const char *>(regs->ebx);
         auto f = VFS::lookup(path);
         if (!f.get()) {
             return -1;
         }
-        Stat st;
+        struct stat st;
         f.getRegularFile()->stat(&st);
-        void *prog = Memory::alloc(st.size);
+        void *prog = Memory::alloc(st.st_size);
         auto fd = f.open(path, 0);
-        fd->read(prog, st.size);
+        fd->read(prog, st.st_size);
         fd->close();
         delete fd;
         ELF *elf = new ELF(prog);
         Task::replaceViaELF(elf);
         return 0; // dead code
     }
-    case 18: // stat
+    case SYS_stat: // stat
     {
         const char *path = reinterpret_cast<const char *>(regs->ebx);
-        Stat *buf = reinterpret_cast<Stat *>(regs->ecx);
+        struct stat *buf = reinterpret_cast<struct stat *>(regs->ecx);
         return VFS::lookup(path).get()->stat(buf);
     }
-    case 19: // lseek
+    case SYS_lseek: // lseek
     {
         int32_t fd = regs->ebx;
         auto node = (*currentTask->file)[fd];
@@ -79,7 +80,7 @@ extern "C" int32_t syscallHandler(PtRegs *regs) {
         }
         return node->seek(regs->ecx, regs->edx);
     }
-    case 20: // getpid
+    case SYS_getpid: // getpid
         return currentTask->tid;
     }
     return -1;

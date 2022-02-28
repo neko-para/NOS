@@ -1,7 +1,7 @@
 #pragma once
 
+#include <sys/stat.h>
 #include <stdint.h>
-#include "../export/nos.h"
 #include "../util/array.h"
 #include "../util/string.h"
 
@@ -42,7 +42,7 @@ struct File {
     virtual int32_t write(const void *, uint32_t ) {
         return -1;
     }
-    virtual int32_t stat(Stat *) {
+    virtual int32_t stat(struct stat *) {
         return -1;
     }
     virtual FileDescriptor *open(int32_t );

@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include "ext2.h"
 #include "../io/disk.h"
 #include "../util/memory.h"
@@ -64,8 +65,8 @@ EXT2::VFSFileDescriptor *EXT2::VFSFile::open(int32_t ) {
     return new VFSFileDescriptor();
 }
 
-int32_t EXT2::VFSFile::stat(Stat *buf) {
-    buf->size = inode->size_lo;
+int32_t EXT2::VFSFile::stat(struct stat *buf) {
+    buf->st_size = inode->size_lo;
     return 0;
 }
 

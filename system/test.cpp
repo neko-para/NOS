@@ -1,4 +1,4 @@
-#include <nos.h>
+#include <unistd.h>
 
 void strcpy(char *dst, const char *src) {
     while (*src) {
@@ -23,5 +23,5 @@ extern "C" void _start() {
     } else {
         execve("/bin/about", 0, 0);
     }
-    exit(0);
+    _exit(0);
 }

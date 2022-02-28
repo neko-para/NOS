@@ -3,42 +3,42 @@ CWD:=system
 ROOT:=..
 
 CBUILD=$(BUILD)/$(CWD)
+CDEP=$(BUILD)/.dep/$(CWD)
 
 CXXSRC=$(wildcard *.cpp)
-CXXOBJ=$(patsubst %.cpp,$(CBUILD)/%.o,$(CXXSRC))
+CXXOBJ=$(patsubst %.cpp,$(CBUILD)/%.cpp.o,$(CXXSRC))
+CXXDEP=$(patsubst %.cpp,$(CDEP)/%.cpp.d,$(CXXSRC))
 PROGRAMS=$(patsubst %.cpp,$(CBUILD)/%,$(CXXSRC))
 
 LIBRARY=$(CBUILD)/libnos.a
-LIBOBJ=$(CBUILD)/nos.o
 
-all: $(LIBRARY) $(PROGRAMS)
+all: $(LIBRARY) $(CXXDEP) $(PROGRAMS)
 
-include ../Makefile.cfg
+-include $(CXXDEP) $(ROOT)/Makefile.cfg
 
-$(CBUILD)/%: $(CBUILD)/%.o $(LIBRARY)
+$(CBUILD)/%: $(CBUILD)/%.cpp.o $(LIBRARY)
 	@echo "Linking $@"
 	@mkdir -p `dirname $@`
 	@$(LD) -o $@ $< $(LDFLAGS) -L$(CBUILD) -lnos
 
-$(CBUILD)/%.o: %.cpp ../kernel/export/nos.h
-	@echo "Building $@"
+$(CDEP)/%.cpp.d: %.cpp
+	@echo "Generating dependency of $<"
 	@mkdir -p `dirname $@`
-	@$(CXX) -c -o $@ $< $(CXXFLAGS) -I../kernel/export
+	@$(CXX) -M -MF $@ -MT $(CBUILD)/$<.o $< $(CXXFLAGS) -I../kernel/nos
+	@echo '	@echo "Building $$@"' >> $@
+	@echo '	@mkdir -p `dirname $$@`' >> $@
+	@echo '	@$$(CXX) -c -o $$@ $$< $$(CXXFLAGS) -I../kernel/nos' >> $@
 
-$(LIBOBJ): ../kernel/export/nos.cpp ../kernel/export/nos.h
-	@echo "Building $@"
-	@mkdir -p `dirname $@`
-	@$(CXX) -c -o $@ $< -ffreestanding
+$(LIBRARY):
+	@make -C $(ROOT)/kernel/nos all BUILD=../$(CBUILD) CWD=nos ROOT=../..
 
-$(LIBRARY): $(LIBOBJ)
-	@echo "Archiving $@"
-	@mkdir -p `dirname $@`
-	@$(AR) r $@ $^ 2> /dev/null
+Lib.clean:
+	@make -C $(ROOT)/kernel/nos clean BUILD=../$(CBUILD) CWD=nos ROOT=../..
 
-clean:
-	@echo "Cleaning $(LIBRARY) $(PROGRAMS) $(CXXOBJ) $(LIBOBJ)"
-	@-rm -f $(LIBRARY) $(PROGRAMS) $(CXXOBJ) $(LIBOBJ)
+clean: Lib.clean
+	@echo "Cleaning $(LIBRARY) $(PROGRAMS) $(CXXOBJ) $(CXXDEP)"
+	@-rm -f $(LIBRARY) $(PROGRAMS) $(CXXOBJ) $(CXXDEP)
 
 .SUFFIXES:
 
-.PHONY: all clean
+.PHONY: all clean Lib.clean

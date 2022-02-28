@@ -1,6 +1,6 @@
-#include <nos.h>
+#include <unistd.h>
 
 extern "C" void _start() {
     write(1, "NOS: nekosu's operating system v1", 33);
-    exit(0);
+    _exit(0);
 }

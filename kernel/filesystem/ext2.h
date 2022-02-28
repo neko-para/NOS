@@ -136,7 +136,7 @@ public:
             delete inode;
         }
         EXT2::VFSFileDescriptor *open(int32_t flag) override;
-        int32_t stat(Stat *buf) override;
+        int32_t stat(struct stat *buf) override;
     };
 
     struct VFSDirectory : public VFS::Directory {
