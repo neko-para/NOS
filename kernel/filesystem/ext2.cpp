@@ -1,9 +1,9 @@
+#include <string.h>
 #include <unistd.h>
 #include "ext2.h"
 #include "../io/disk.h"
 #include "../util/memory.h"
 #include "../util/new.h"
-#include "../util/string.h"
 #include "../io/term.h"
 
 void EXT2::SuperBlock::locateInode(uint32_t i, uint32_t &group, uint32_t &block, uint32_t &inner) const {

@@ -2,14 +2,6 @@
 
 #include <stdint.h>
 
-void memcpy(void *dst, const void *src, uint32_t size);
-int memcmp(const void *data1, const void *data2, uint32_t size);
-void memset(void *data, uint8_t value, uint32_t size);
-
-uint32_t strlen(const char *str);
-void strcpy(char *dst, const char *src);
-int32_t strcmp(const char *str1, const char *str2);
-
 class String {
 public:
     String(const char *str = "");
@@ -56,9 +48,7 @@ public:
 
     String substr(uint32_t begin, int32_t length = -1) const;
 
-    friend bool operator==(const String &s1, const String &s2) {
-        return s1._length == s2._length && !memcmp(s1._buffer, s2._buffer, s1._length);
-    }
+    friend bool operator==(const String &s1, const String &s2);
 
 private:
     String(char *buf, uint32_t len) : _length(len), _buffer(buf) {}

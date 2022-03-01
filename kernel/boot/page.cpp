@@ -1,7 +1,7 @@
+#include <string.h>
 #include "page.h"
 #include "../util/memory.h"
 #include "../util/new.h"
-#include "../util/string.h"
 
 Page *flatPage;
 

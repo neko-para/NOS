@@ -30,8 +30,7 @@ public:
     static bool schedule();
     static bool lockSchedule();
 
-    static int32_t createViaELF(ELF *elf, uint32_t prio = 10);
-    static void replaceViaELF(ELF *elf);
+    static void replaceViaELF(ELF *elf, char **argv = 0, char **envp = 0);
 
     static bool inited;
 };

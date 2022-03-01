@@ -6,7 +6,7 @@ DISK_DIR=disk
 DISK_FILE=disk.img
 MOUNT_DIR=/mnt/nos
 KERNEL=build/kernel/kernel.bin
-PROGRAMS=build/system/about build/system/test
+PROGRAMS=build/system/about build/system/test build/system/echo
 
 all: checkMount kernel.all system.all install
 

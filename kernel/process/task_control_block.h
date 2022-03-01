@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include "../vfs/vfs.h"
-#include "../util/array.h"
+#include "../util/array"
 
 struct TaskControlBlock {
     enum {

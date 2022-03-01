@@ -1,8 +1,8 @@
+#include <string.h>
 #include "io.h"
 #include "term.h"
 #include "../process/task.h"
 #include "../util/new.h"
-#include "../util/string.h"
 
 const uint16_t hexFlag = 0x0001;
 

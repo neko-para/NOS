@@ -2,8 +2,8 @@
 
 #include <sys/stat.h>
 #include <stdint.h>
-#include "../util/array.h"
-#include "../util/string.h"
+#include "../util/array"
+#include "../util/string"
 
 namespace VFS {
 

@@ -131,6 +131,8 @@ extern "C" int32_t syscallHandler(PtRegs *regs) {
     case SYS_execve:
     {
         const char *path = reinterpret_cast<const char *>(regs->ebx);
+        char **argv = reinterpret_cast<char **>(regs->ecx);
+        char **envp = reinterpret_cast<char **>(regs->edx);
         auto f = VFS::lookup(path);
         if (!f.get()) {
             return -1;
@@ -143,7 +145,7 @@ extern "C" int32_t syscallHandler(PtRegs *regs) {
         fd->close();
         delete fd;
         ELF *elf = new ELF(prog);
-        Task::replaceViaELF(elf);
+        Task::replaceViaELF(elf, argv, envp);
         return 0;
     }
     case SYS_stat:

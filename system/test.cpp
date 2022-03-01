@@ -1,22 +1,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
+#include <string.h>
 
-void strcpy(char *dst, const char *src) {
-    while (*src) {
-        *dst++ = *src++;
-    }
-    *dst = 0;
-}
-
-uint32_t strlen(const char *src) {
-    uint32_t l = 0;
-    while (*src++) {
-        l++;
-    }
-    return l;
-}
-
-extern "C" void _start() {
+extern "C" int _main() {
     write(1, "From parent!\n", 13);
     pid_t p = fork();
     if (p) { // parent
@@ -27,7 +13,14 @@ extern "C" void _start() {
         write(1, buf, 16);
         write(1, "parent exit!\n", 13);
     } else {
-        execve("/bin/about", 0, 0);
+        char path[] = "/bin/echo";
+        char text[] = "Hello world!";
+        char *args[] = {
+            path,
+            text,
+            0
+        };
+        execve(path, args, 0);
     }
-    _exit(0);
+    return 0;
 }

@@ -3,6 +3,7 @@
     "files.associations": {
         "*.sass": "scss",
         "syscall.h": "c",
-        "stat.h": "c"
+        "stat.h": "c",
+        "types.h": "c"
     }
 }

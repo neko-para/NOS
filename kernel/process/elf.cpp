@@ -1,8 +1,8 @@
 #include "elf.h"
+#include <string.h>
 #include "../io/term.h"
 #include "../util/memory.h"
 #include "../util/new.h"
-#include "../util/string.h"
 
 ELF::ELF(void *content) : content(content) {
     header = at<Header>(0);

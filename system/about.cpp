@@ -1,6 +1,6 @@
 #include <unistd.h>
 
-extern "C" void _start() {
+extern "C" int _main() {
     write(1, "NOS: nekosu's operating system v1\n", 34);
-    _exit(1);
+    return 1;
 }

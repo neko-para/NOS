@@ -1,9 +1,9 @@
+#include <string.h>
 #include "task.h"
 #include "task_control_block.h"
 #include "../boot/page.h"
 #include "../util/memory.h"
 #include "../util/new.h"
-#include "../util/string.h"
 
 TaskControlBlock::TaskControlBlock() {
     pages = 0;

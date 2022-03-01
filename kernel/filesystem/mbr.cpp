@@ -1,6 +1,6 @@
+#include <string.h>
 #include "mbr.h"
 #include "../io/disk.h"
-#include "../util/string.h"
 
 bool MBREntry::isValid() {
     uint8_t buf[sizeof (MBREntry)];
