@@ -13,22 +13,46 @@ void EXT2::SuperBlock::locateInode(uint32_t i, uint32_t &group, uint32_t &block,
     inner = (index * inode_size) % 1024;
 }
 
+inline void detect(VFS::FilePtr fp, EXT2 *&fs, EXT2::Inode *&inode) {
+    switch (fp->type & VFS::File::T_MASK) {
+    case VFS::File::T_REGULAR_FILE: {
+        auto *f = reinterpret_cast<EXT2::VFSFile *>(fp.getRegularFile());
+        fs = f->fs;
+        inode = f->inode;
+        break;
+    }
+    case VFS::File::T_DIRECTORY: {
+        auto *f = reinterpret_cast<EXT2::VFSDirectory *>(fp.getDirectory());
+        fs = f->fs;
+        inode = f->inode;
+        break;
+    }
+    }
+}
+
 int32_t EXT2::VFSFileDescriptor::read(void *buf, uint32_t size) {
-    auto *f = reinterpret_cast<VFSFile *>(file.getRegularFile());
-    if (seekg == f->inode->size_lo) {
+    EXT2 *fs = 0;
+    EXT2::Inode *inode = 0;
+    detect(file, fs, inode);
+
+    if (seekg == inode->size_lo) {
         return 0;
     }
-    if (seekg + size >= f->inode->size_lo) {
-        size = f->inode->size_lo - seekg;
+    if (seekg + size >= inode->size_lo) {
+        size = inode->size_lo - seekg;
     }
-    uint8_t *content = reinterpret_cast<uint8_t *>(f->fs->readInodeContent(f->inode));
+    uint8_t *content = reinterpret_cast<uint8_t *>(fs->readInodeContent(inode));
     memcpy(buf, content + seekg, size);
     Memory::free(content);
+    seekg += size;
     return size;
 }
 
 int32_t EXT2::VFSFileDescriptor::seek(int32_t offset, int32_t whence) {
-    auto *f = reinterpret_cast<VFSFile *>(file.getRegularFile());
+    EXT2 *fs = 0;
+    EXT2::Inode *inode = 0;
+    detect(file, fs, inode);
+
     switch (whence) {
     case SEEK_SET:
         if (offset < 0) {
@@ -43,10 +67,10 @@ int32_t EXT2::VFSFileDescriptor::seek(int32_t offset, int32_t whence) {
         seekg += offset;
         break;
     case SEEK_END:
-        if (int32_t(f->inode->size_lo) + offset < 0) {
+        if (int32_t(inode->size_lo) + offset < 0) {
             return -1;
         }
-        seekg = f->inode->size_lo + offset;
+        seekg = inode->size_lo + offset;
         break;
     default:
         return -1;
@@ -54,6 +78,29 @@ int32_t EXT2::VFSFileDescriptor::seek(int32_t offset, int32_t whence) {
     return seekg;
 }
 
+int32_t EXT2::VFSFileDescriptor::getdents(nos_dirent *dirp, uint32_t count) {
+    auto *d = reinterpret_cast<VFSDirectory *>(file.getDirectory());
+    if (!d) {
+        return -1;
+    }
+    int32_t x = 0;
+    while (count--) {
+        if (seekg >= d->inode->size_lo) {
+            return x;
+        }
+        uint32_t prev = seekg;
+        seek(4, SEEK_CUR); // skip inode;
+        read(dirp, 4);
+        uint16_t sz = dirp->next;
+        dirp->next = dirp->length + 5;
+        read(reinterpret_cast<void *>(reinterpret_cast<uint8_t *>(dirp) + 4), dirp->length);
+        dirp->name[dirp->length] = 0;
+        dirp = reinterpret_cast<nos_dirent *>(reinterpret_cast<uint8_t *>(dirp) + dirp->next);
+        x += sz;
+        seek(prev + sz, SEEK_SET);
+    }
+    return x;
+}
 
 EXT2::VFSFile::VFSFile(EXT2 *fs, uint32_t i, EXT2::Inode *n) : fs(fs), id(i), inode(n) {
     if (!inode) {
@@ -66,6 +113,15 @@ EXT2::VFSFileDescriptor *EXT2::VFSFile::open(int32_t ) {
 }
 
 int32_t EXT2::VFSFile::stat(struct stat *buf) {
+    buf->st_size = inode->size_lo;
+    return 0;
+}
+
+EXT2::VFSFileDescriptor *EXT2::VFSDirectory::open(int32_t ) {
+    return new VFSFileDescriptor();
+}
+
+int32_t EXT2::VFSDirectory::stat(struct stat *buf) {
     buf->st_size = inode->size_lo;
     return 0;
 }

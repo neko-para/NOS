@@ -1,6 +1,7 @@
 #include <sys/syscall.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <dirent.h>
 #include "syscall.h"
 #include "task.h"
 #include "../vfs/vfs.h"
@@ -165,6 +166,20 @@ extern "C" int32_t syscallHandler(PtRegs *regs) {
     }
     case SYS_getpid:
         return currentTask->tid;
+    case SYS_getdents:
+    {
+        int32_t fd = regs->ebx;
+        auto node = (*currentTask->file)[fd];
+        if (!node) {
+            return -1;
+        }
+        if (!node->file.getDirectory()) {
+            return -1;
+        }
+        nos_dirent *dirp = reinterpret_cast<nos_dirent *>(regs->ecx);
+        uint32_t count = regs->edx;
+        return node->getdents(dirp, count);
+    }
     }
     return -1;
 }

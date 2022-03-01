@@ -11,3 +11,4 @@
 #define SYS_stat 18
 #define SYS_lseek 19
 #define SYS_getpid 20
+#define SYS_getdents 141

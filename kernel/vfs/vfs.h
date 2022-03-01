@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sys/stat.h>
+#include <dirent.h>
 #include <stdint.h>
 #include "../util/array"
 #include "../util/string"
@@ -164,6 +165,9 @@ struct FileDescriptor {
         return 0;
     }
     virtual int32_t seek(int32_t , int32_t ) {
+        return -1;
+    }
+    virtual int32_t getdents(nos_dirent *, uint32_t ) {
         return -1;
     }
 };

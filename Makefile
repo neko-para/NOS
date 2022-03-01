@@ -2,11 +2,13 @@ BUILD:=build
 CWD:=.
 ROOT:=.
 
+BINS=about echo ls test
+
 DISK_DIR=disk
 DISK_FILE=disk.img
 MOUNT_DIR=/mnt/nos
 KERNEL=build/kernel/kernel.bin
-PROGRAMS=build/system/about build/system/test build/system/echo
+PROGRAMS=$(patsubst %,build/system/%,$(BINS))
 
 all: checkMount kernel.all system.all install
 

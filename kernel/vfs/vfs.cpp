@@ -19,7 +19,7 @@ FilePtr lookup(const String &path) {
     if (path.length() == 0 || path[0] != '/') {
         return 0;
     } else if (path == "/") {
-        return root;
+        return root->mount ? root->mount->root() : root;
     }
     do {
         pos = path.indexOf('/', prev + 1);

@@ -1,8 +1,9 @@
 #include <sys/syscall.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
-#include <stdarg.h>
+#include <dirent.h>
 #include <fcntl.h>
+#include <stdarg.h>
 #include <unistd.h>
 
 long syscall(long number, ...) {
@@ -54,16 +55,22 @@ pid_t getpid(void) {
     return syscall(SYS_getpid);
 }
 
-/* sys/stat.h */
+/* dirent.h */
 
-int stat(const char *pathname, struct stat *statbuf) {
-    return syscall(SYS_stat, pathname, statbuf);
+int getdents(int fd, struct nos_dirent *dirp, size_t count) {
+    return syscall(SYS_getdents, fd, dirp, count);
 }
 
 /* fcntl.h */
 
 int open(const char *pathname, int flags) {
     return syscall(SYS_open, pathname, flags);
+}
+
+/* sys/stat.h */
+
+int stat(const char *pathname, struct stat *statbuf) {
+    return syscall(SYS_stat, pathname, statbuf);
 }
 
 /* sys/wait.h */

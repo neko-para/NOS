@@ -123,6 +123,8 @@ public:
         }
         int32_t read(void *buf, uint32_t size) override;
         int32_t seek(int32_t offset, int32_t whence) override;
+        
+        int32_t getdents(nos_dirent *dirp, uint32_t count) override;
     };
 
     struct VFSFile : public VFS::RegularFile {
@@ -149,6 +151,8 @@ public:
         ~VFSDirectory() {
             delete inode;
         }
+        EXT2::VFSFileDescriptor *open(int32_t flag) override;
+        int32_t stat(struct stat *buf) override;
     };
 
     EXT2(uint32_t drive, uint32_t start, uint32_t size);
